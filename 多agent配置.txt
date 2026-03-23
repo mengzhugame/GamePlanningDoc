@@ -69,8 +69,8 @@
 }
 
 
-OpenRouter Key:
-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
+
+
 
 Discord APPID:
 1483416215656337468
