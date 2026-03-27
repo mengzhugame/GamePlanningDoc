@@ -440,3 +440,143 @@ V3.0 的 W9 单波怪物数量是 200+100+10=**310 只**，超过了当前上限
 - 如经验有偏差，可微调各怪物 xpReward 值
 
 ---
+
+## [2026-03-26] Boss数值削弱+护盾伤害采集+基准数据确认
+
+### 背景
+本次对话是上一次10局测试之后的延续，对话中段因上下文满了而中断，本次从中断处恢复继续执行。
+
+### 用户问题汇总（上一会话继承）
+
+**Q1-Q6 数值方向确认**（上会话已完成）：
+- Q1: 难度1目标胜率80%，难度2约50%，难度5约20%
+- Q2: 冲击技能（Impact）= 纯位移反推，零DPS，只做Boss角力用
+- Q3: 难度1-5系统，等基础数值确认后再实现
+- Q4: 护盾数据可从HP_Start/End_Shield推算，但需加明确列
+- Q5: 三流派（暴击流/分裂流/冰冻流）均需可行
+- Q6: 先改测试配置验证，通过后再改正式配置
+
+**关键数据发现**：
+- DifficultyManager.GetCurrentModifiers() 永远返回 Default(1.0)，难度1-5是死代码
+- 10局Boss胜率仅50%（目标80%），需削弱Boss
+
+**Boss校准推导**：
+- 平均Panel_DPS=2145，×0.55护甲×0.6操作效率=710有效DPS
+- 目标2分钟通关：710×120s×1.4(污染球加成)≈119,200 HP
+- 确定Boss血量：120,000（当前500,000成为难度5基准）
+
+**难度梯度设计**：
+| 难度 | 目标胜率 | Boss血量 |
+|------|---------|---------|
+| 1    | 80%     | 120,000 |
+| 2    | 50%     | ~200,000|
+| 3    | 35%     | ~300,000|
+| 4    | 25%     | ~400,000|
+| 5    | 20%     | ~500,000|
+
+### 本次执行的修改
+
+**1. BossConfig.asset** — Boss数值削弱（难度1校准）：
+- maxHealth: 500,000 → 120,000
+- armorDamageReduction: 0.80 → 0.75
+- chargeHitDamage: 300 → 250
+- pollutionShieldDamage: 100 → 80
+
+**2. 数据采集V4.6** — 新增护盾伤害追踪列：
+- `BattleStatTypes.cs`：新增 `public float shieldDmgFromMobs` 字段
+- `BattleStatistics.cs`：
+  - 新增私有字段 `_waveDmgShieldFromMobs`
+  - 新增公共方法 `RecordShieldDamageFromMobs(float shieldAbsorbed)`
+  - 在 RecordWaveData、StartNewWave 中接入
+  - CSV表头新增 "Shield_Dmg_From_Mobs"
+  - BuildCSVDataLine 所有参数索引 +1（73个字段）
+  - CSV_FIELD_COUNT: 72 → 73
+- `TurretHealth.cs`：TakeDamage() 小怪碰撞时记录护盾吸收量（全吸收/部分吸收两路均处理）
+
+**（已在上会话执行，本次一同提交）**：
+- 所有怪物XP翻倍：Slime 10→20, Rusher 8→16, Tank 40→80, Drifter 20→40, EliteTank 200→400, EliteDrifter 100→200
+- 新增测试波次配置 Chapter01_01_Test.asset（W1-W10含Boss波）
+
+### Git Commit
+`130fc81` — 数值平衡：Boss削弱+怪物XP翻倍+护盾伤害采集
+
+### 下一步计划
+1. 在 Unity Editor 运行3局验证Boss胜率是否提升到约80%
+2. 验证 Shield_Dmg_From_Mobs 数据列正常采集
+3. 基准数据确认后，进入第二阶段：建立DPS成长模型与波次HP锚点曲线
+4. 未来：实现难度1-5差异化缩放（DifficultyManager）
+5. 未来：将测试配置验证通过的数值同步到正式配置 Chapter01_01.asset
+
+---
+
+## [2026-03-27] V4.7数据采集修复 + 25局实机数据分析 + 正式数值模型建立
+
+**用户:** 我跑了最新的10局战斗，战斗采集的数据已放在D:\Project\GamePlanningDoc\20_项目\02_光与朽项目\08_对战数据 文件夹中，你先读取这些战斗采集的数据文件，然后判断基准数据是否需要修改？如果不需要修改，再判断这些数据是否足够你建立正式的TTK锚点模型，如果不够，我再继续跑10局，如果够了，那你开始第二阶段建立数据模型。
+
+**Claude:** 读取了25个CSV文件（15个V4.6 + 10个V4.7），进行了完整数据分析。
+
+**数据质量评估结论：**
+- 胜率：20/25 = 80.0%（完美命中目标）
+- Shield_Dmg_From_Mobs V4.7修复生效（有非零值）
+- Boss_Dmg_Dealt V4.7正常（胜局均≈120,000）
+- Wave_Diff_Mult全部1.00（第一章无难度系数）
+- 败局模式：Boss剩余2-15% HP时玩家HP耗尽（惜败体验良好）
+- 基准数据无需修改，样本充足，直接建立正式模型
+
+**建立了正式数值模型（V1.0），保存至策划文档目录：**
+`光与朽_战斗数值模型_V1.0.md`
+
+**模型核心内容：**
+
+1. **TTK锚点曲线** — Required_DPS: W1:488→W2:740→W3:858→W4:748→W5:2055→W6:2140→W7:973→W8:2526→W9:2543→W10:3000
+
+2. **Panel_DPS官方成长曲线** — W1:1000→W2:1150→W3:1300→W4:1500→W5:1800→W6:2000→W7:1720→W8:1720→W9:1800
+
+3. **技能协同因子（Synergy Factor）** — 早期(W1-W4): 0.5-0.7×；后期(W5-W9): 1.1-4.8×；冰冻爆炸流W9峰值达4.8×
+
+4. **各流派DPS效率对比：**
+   - A型暴击流（Impact+Crit）：面板≈实际，Boss战20-25s（最快）
+   - B型折射流（Prism+Wide+Chain）：协同2-3.5×，Boss战23-46s
+   - 冰冻爆炸流（Frost+Shatter）：面板1000但实际可达4500+，Boss战46-100s（最慢）
+
+5. **EHP生存预算** — W7-W8是主要伤害压力区，进Boss战时典型剩余EHP 1040-2000
+
+6. **Deal契约ROI** — 高风险高回报，最高DPS局（W9=3494 EffDPS）正是Deal流玩法
+
+**发现的设计问题：**
+- W4清场时间方差过大（54s-138s，2.5倍差距）
+- 冰冻流Panel_DPS与实际DPS信息差（面板低估实力）
+- W7护盾损耗不可预测（20-700，35倍差距）
+
+## [2026-03-27] BaseBossController 架构重构（阶段1）
+
+**用户:** 继续执行上次中断的任务（阶段0已由用户手动修改bossConfig.asset完成，开始阶段1）。
+
+**Claude:** 阅读了现有 `BossController.cs`（2289行）和 `BossHealth.cs` 的完整代码，设计并实现了 `BaseBossController` 抽象基类架构。
+
+**执行内容：**
+
+**新建 `BaseBossController.cs`（~630行）**：
+- 将BossState、BossStatusTextType枚举从BossController移出，定义在基类文件中
+- 提取所有共享系统到抽象基类：状态机、冰冻/霸体/控制递减、狂暴演出、Charge技能、Press技能（含角力物理/摩擦伤害/过载）、Stun、Frozen、Spawn、Idle
+- 定义抽象方法 `ExecuteSummonBehavior()` — 各Boss必须实现自己的召唤内容
+- 定义虚方法：`OnIdlePassiveUpdate()`、`OnEnterIdle()`、`GetChargeSpeedMultiplier()`、`GetLinkedBuffDamageMultiplier()`、`ChooseActiveSkill()`、`OnBossInitialized()`、`OnExtraUpdate()`
+- BossHealth通过 `BaseBossController.GetLinkedBuffDamageMultiplier()` 虚方法获取减伤倍率（Ch1重写基于Rusher数量，Ch2/Ch3返回1f）
+
+**重构 `BossController.cs`（2289行→~160行）**：
+- 继承 `BaseBossController`
+- 只保留Ch1专属逻辑：污秽球被动系统、`ExecuteSummonBehavior()`实现（SpawnRushers）、连体Buff（基于Rusher数量的加速/减伤）
+
+**修改 `BossHealth.cs`**：
+- `BossController` 引用改为 `BaseBossController`
+- 移除重复的 `GetLinkedBuffStacks()` 和 `GetLinkedBuffDamageMultiplier()`，改为委托给bossController虚方法
+
+**修改 `LaserController.cs` 和 `LaserFrostHandler.cs`**：
+- 所有 `BossController` 类型引用改为 `BaseBossController`（通过多态保持兼容）
+
+**架构收益**：
+- Ch2/Ch3 Boss只需继承 `BaseBossController`，实现 `ExecuteSummonBehavior()`，重写需要定制的虚方法
+- Charge/Press技能对所有Boss共享，Ch2「绝境碾压+陨石」可重写 `OnPressPhase3Start()` 钩子（未来扩展）
+- `BossPollutionProjectile` 仍引用 `BossController` 具体类型（Ch1专用，正确）
+
+**Git提交**: `7e66764` — 已push到远端。
