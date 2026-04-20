@@ -17,6 +17,8 @@
 | 04 | `04_AudioManager.md` | 音频管理器 | 所有项目 | ⭐⭐⭐⭐⭐ |
 | 05 | `05_SaveManager.md` | 存档管理器（本地+服务器双保险） | 有用户系统的项目 | ⭐⭐⭐⭐☆ |
 | 06 | `06_WXAdsManager.md` | 微信激励视频广告管理器 | 微信小游戏 IAA 变现 | ⭐⭐⭐⭐⭐ |
+| 07 | `07_UIAnimationHelper.md` | UI 动画工具（Scale Punch + Rolling Number） | 所有有属性数值反馈的项目 | ⭐⭐⭐⭐⭐ |
+| 08 | `UGUI挖孔遮罩/README.md` | SDF Shader 挖孔遮罩 + TutorialDirector 接入方案 | 有新手引导的项目 | ⭐⭐⭐⭐⭐ |
 
 ---
 
@@ -38,3 +40,7 @@
 | DifficultyManager 难度管理器 | LightVSDecay | P1 |
 | ScriptableObject数据驱动架构范例 | LightVSDecay | P0 |
 | UIManager 状态机面板管理 | MZ02/LVD | P1 |
+
+## 最近更新
+
+- **2026-04-14**：新增 07 UIAnimationHelper（Scale Punch + Rolling Number），新增 08 UGUI挖孔遮罩（含 TutorialDirector 完整接入方案）。均来源于 LightVSDecay 新手引导系统重构。
