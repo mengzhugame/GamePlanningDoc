@@ -20,7 +20,7 @@ User invokes `/new-project` with a project name (e.g. "开始做第三个项目�
    - A "Related Knowledge" section that queries `40_知识/` for entries tagged with user-specified topics and lists them as wikilinks
 4. Ask user for: core genre tags (e.g. 休闲 / 动作 / Boss战 / 女性向) and target platform. Use answers to pre-fill the "Related Knowledge" section.
 5. Optionally copy `project-schema` frontmatter into `_PROJECT_MOC.md`
-6. Append an entry to today's `00_流水/YYYY-MM-DD.md` announcing the new project
+6. Append an entry to today's `10_流水/YYYY-MM-DD.md` announcing the new project
 7. READ BACK `_PROJECT_MOC.md` and verify all 7 subfolders exist
 
 ## Constraints

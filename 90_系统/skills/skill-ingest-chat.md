@@ -11,9 +11,9 @@ User invokes `/ingest-chat` with a path (file or folder) under `AI对话记录/`
    c. Extract main topic tags (3-5 tags max, reuse existing tag vocabulary when possible)
    d. Identify 3-5 key insights — must be quoted or closely paraphrased from the actual conversation
    e. Judge `distill_worthy`: true if insight is generalizable beyond the specific conversation
-3. Generate one `ai-conversation-schema` entry per source file at `50_索引/AI对话/<source_platform>/<YYYY-MM-DD>_<short-title>.md`
+3. Generate one `ai-conversation-schema` entry per source file at `60_索引/AI对话/<source_platform>/<YYYY-MM-DD>_<short-title>.md`
 4. Leave original transcript UNCHANGED at its original path (index file's `raw_transcript_path` points to it)
-5. After processing a batch, append a summary entry to today's `00_流水/YYYY-MM-DD.md`
+5. After processing a batch, append a summary entry to today's `10_流水/YYYY-MM-DD.md`
 6. READ BACK at least one generated index file and verify schema compliance
 
 ## Constraints
