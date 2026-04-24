@@ -44,9 +44,14 @@ updated: 2026-04-20
 7. 音效/BGM 的氛围营造与低成本制作 → 04_音频与节奏
 8. 微信小游戏的数据埋点与买量 → 06_发行与运营
 
+## 索引层（50_索引/）
+
+- [[50_索引/AI对话/全景图|AI 对话全景图]] — 41 个对话文件的主题聚类 + 蒸馏进度（8/41 已完成）
+
 ## 系统协议（90_系统/）
 
 - [[90_系统/SYSTEM_PROMPT|LifeOS Agent Protocol — 6 条铁律 + Skill Map]]
+- [[90_系统/用户画像|用户画像（小龙儿）]] — 读懂用户的核心档案
 - Schemas：draft / project / knowledge / review / **ai-conversation** / **inbox-digest**
 - Skills：start / project / research / knowledge / review / archive / **ingest-chat** / **ingest-claw** / **distill** / **new-project**
 
