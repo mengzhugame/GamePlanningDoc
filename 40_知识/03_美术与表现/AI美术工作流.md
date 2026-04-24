@@ -151,3 +151,62 @@ overly detailed armor, messy proportions
 - [ ] 材质表现一致（扁平 vs 体积感）？
 - [ ] 光影复杂度一致？
 - [ ] 所有角色视角一致？
+
+---
+
+## 机制驱动的怪物设计工作流
+
+> 来源：Openclaw_光与朽美术_2026-03-27.md。适用于"用 AI 大批量生产功能性游戏怪物"的场景。
+
+**核心原则**：怪物的机制决定视觉——先定机制，再出美术，而不是反过来。
+
+### 四步流程
+
+**Step 1 — 机制转视觉**
+
+| 机制特征 | 视觉转化方式 |
+|---------|------------|
+| 死后分裂 N 个 | 身体由 N 个隐约粘连的子体组成（剪影暗示机制） |
+| 自爆 / 高危 | 膨胀球形 + 龟裂纹 + 中心高亮（"快要炸"的视觉张力） |
+| 防护盾 | 外层有单独的护盾挂件（可被打碎的视觉层） |
+| 岩浆污染地形 | 死亡特效覆盖范围比怪物体积大一圈，带呼吸闪烁 |
+
+**Step 2 — 定剪影（形状设计）**
+
+剪影优先，提示词之前先定：
+- 第一章（同系列）基础剪影 → 第二章差异化（不要换色，要换形状）
+- 三角形/倒三角/球形/不规则块状 → 不同剪影传达不同性格
+
+**Step 3 — 三层拆层标准**
+
+所有怪物统一拆成三层输出（配合 Unity Shader）：
+
+| 图层 | 内容 | 制作方式 |
+|------|------|---------|
+| **Body RT**（底体层） | 纯色轮廓/流体底座，无高光细节 | PS 里用液化工具基于 AI 图手绘纯色剪影 |
+| **Eyes**（眼睛层） | 发光核心/眼睛，传达情绪/机制 | PS 从完整图里抠出，透明 PNG |
+| **Accessories**（挂件层） | 装甲/配饰/功能性附件 | PS 从完整图里抠出，透明 PNG |
+
+**Step 4 — 2D 提示词模板（适用于 Lovart / SD）**
+
+```
+A 2D vector art illustration of [怪物名], top-down view.
+[剪影描述]. The main body is [颜色+材质描述].
+[眼睛/核心描述]. [挂件/装甲描述].
+Cell shading, flat colors with distinct bright anime-style highlights,
+clean sharp outlines, pure white background,
+cute but dangerous, high quality 2D game asset,
+matching the style of casual 2d mobile games.
+
+Negative: 3d, 3d render, realistic, gradient shading,
+complex background, blurry, pixel art, lowres, soft edges.
+```
+
+**注意**：2D 游戏的提示词里绝对不要出现 "stylized 3D"、"3D render" 等词，否则会破坏风格统一性。
+
+### 实战案例（光与朽第二章）
+
+| 怪物 | 机制 | 剪影思路 | 眼睛层 | 挂件层 |
+|------|------|---------|-------|-------|
+| 熔岩分裂怪 | 打死分裂3个 | 3圆球粘连体（暗示分裂结构） | 3只大小不一的黄色竖瞳 | 黑曜石碎块装甲 |
+| 熔岩自爆怪 | 死后留岩浆斑 | 极度膨胀球体+边缘气泡 | 单只疯狂大眼 | 龟裂的黑岩外壳+裂缝高光 |
