@@ -86,8 +86,31 @@
 
 ---
 
+## 知识库共享架构（Multi-AI 共享约定）
+
+**本地根目录**：`/Users/joye.wang/Projects/GamePlanningDoc/`
+
+所有 AI 工具以此目录为共同根，各司其职：
+
+| 工具 | 可读路径 | 可写路径 |
+|------|---------|---------|
+| Claude Code | 全库 | 全库（需用户确认破坏性操作） |
+| Codex | 全库 | 代码相关文件（`40_知识/代码模板库/`、`20_项目/`） |
+| openclaw | `40_知识/`、`20_项目/`、`30_openclaw_inbox/` | `30_openclaw_inbox/YYYY-MM-DD/` |
+| Obsidian | 全库（用户直接编辑） | 全库（用户直接编辑） |
+
+**openclaw 配置要点**：
+- 知识库存储根路径 → `/Users/joye.wang/Projects/GamePlanningDoc/`
+- 情报写入 → `30_openclaw_inbox/YYYY-MM-DD/` （保持 inbox 状态，等待 `/ingest-claw` 蒸馏）
+- 采集前先读 `40_知识/` —— 了解已蒸馏知识，避免重复采集
+- 采集前先读 `20_项目/` —— 了解在制项目上下文，辅助情报过滤与打标
+- **禁止直接写入 `40_知识/`**，知识沉淀必须经 Claude Code 执行 `/distill` schema 化
+
+---
+
 ## 协作工具分工
 
 - **Codex（本工具）**：偏代码生成、重构、技术实现任务
-- **Claude Code**：读 `CLAUDE.md`（与本文件同源），主蒸馏、项目推进、知识组织
-- **openclaw（Mac 端）**：只写 `30_openclaw_inbox/YYYY-MM-DD/*.md`，不读其他
+- **Claude Code**：读 `CLAUDE.md`（与本文件同源），主蒸馏、项目推进、知识组织；唯一有权写 `40_知识/` 的 AI
+- **openclaw（Mac 端）**：情报采集写 `30_openclaw_inbox/`；可读 `40_知识/` 和 `20_项目/` 获取上下文
+- **Obsidian**：用户直接编辑的主界面，全库可见
