@@ -104,3 +104,50 @@ review_count: 1
 - 数据集质量差（图片清晰度不一、风格混杂）→ LoRA 训练失败，输出效果随机
 - 不记录参数（seed、Checkpoint 版本、LoRA 权重）→ 效果好的图无法复现
 - 对所有资源用同一个 ControlNet strength → 角色需要强控制（0.8+），场景可以宽松（0.7 左右）
+
+---
+
+## Style Bible（角色风格圣经）
+
+> 来源：Google_光与朽美术_2026-04-03.md。生产任何角色资产前必须建立此文档。
+
+**目的**：把模糊审美变成可量产的风格规范，解决"换了批次就像换了团队"问题。
+
+### Style Bible 必须定义的 6 个维度
+
+| 维度 | 选项 | 示例 |
+|------|------|------|
+| 游戏类型 | 2D / 俯视 / 横版 / 卡牌 / 塔防 | 竖版塔防 |
+| 角色视角 | 正侧 / 45° / 正面 | 正面 |
+| 比例风格 | Q版 / 半Q / 正常 / 夸张 | 半Q（头大身小） |
+| 线条风格 | 无描边 / 细描边 / 粗描边 | 细描边 |
+| 上色方式 | 平涂 / 轻渐变 / 复杂体积 | 轻渐变 |
+| 光影要求 | 单主光源 / 无写实阴影 | 单主光源 |
+
+### 风格锁定 Prompt（每次生成都必须附加）
+
+```
+same art style as previous characters,
+consistent proportions and rendering style,
+game asset style, not illustration,
+simple shapes, high readability,
+cartoon 2D game character sheet style
+```
+
+### 反向 Prompt（必须排除的风格污染）
+
+```
+realistic, anime style, painterly,
+complex background, high detail texture,
+photorealistic lighting, 3D render,
+overly detailed armor, messy proportions
+```
+
+### 风格自审清单（每批资产生成后检查）
+
+- [ ] 线条粗细一致？
+- [ ] 形状语言统一（圆润/尖锐/方块，不混用）？
+- [ ] 色彩饱和度/明度在同一范围？
+- [ ] 材质表现一致（扁平 vs 体积感）？
+- [ ] 光影复杂度一致？
+- [ ] 所有角色视角一致？
