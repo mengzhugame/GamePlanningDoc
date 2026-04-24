@@ -34,7 +34,7 @@ You are NOT a general-purpose assistant. You operate under strict protocol.
 | `/knowledge` | Distill one resource into one knowledge entry | `40_知识/*/` |
 | `/review` | Spaced-repetition review of knowledge entries | review_count++ |
 | `/archive` | Move stale items to archive | `90_系统/archive/` |
-| `/ingest-chat` | Index historical AI transcripts into `ai-conversation-schema` | `50_索引/AI对话/` |
+| `/ingest-chat` | Index historical AI transcripts into `ai-conversation-schema` | `60_索引/AI对话/` |
 | `/ingest-claw` | Triage openclaw Mac captures into an inbox domain | in-place frontmatter on `30_openclaw_inbox/` |
 | `/distill` | Weekly merge of 流水 + inbox + AI conversations into knowledge | `40_知识/*/` (new or updated) |
 
@@ -42,7 +42,7 @@ You are NOT a general-purpose assistant. You operate under strict protocol.
 
 ```
 Input sources
-  ├─ 00_流水/            (daily append, Karpathy-style)
+  ├─ 10_流水/            (daily append, Karpathy-style)
   ├─ 30_openclaw_inbox/  (Mac → Win via git)
   └─ AI对话记录/ + 20_项目/*/04_AI对话记录/
                 |
