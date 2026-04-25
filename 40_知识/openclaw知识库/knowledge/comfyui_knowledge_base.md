@@ -3894,3 +3894,168 @@ TXT2IMG → Latent Upscale(by 1.5~2.0) → KSampler(低中 denoise) → VAE Deco
 - `docs.comfy.org` 基础 upscaling 教程（ESRGAN / Image Upscale with Model）
 - Reddit `r/comfyui` 关于 USDU、Tile ControlNet、低 denoise 放大的经验讨论
 - Bilibili / YouTube 社区关于 ComfyUI 高清放大、USDU、Tile ControlNet 的实战教程
+
+
+# 📚 ComfyUI 初级节点精讲学习笔记 (2026-04-25)
+
+## 🎯 今日攻克节点：ComfyUI 架构思维解析 2.0 —— Checkpoint / CLIP / Latent / KSampler / VAE 的真正分工
+
+### 一、为什么这一步必须彻底打通
+这不是“基础概念背诵”，这是整个 ComfyUI 的总线图。后面无论你上 LoRA、ControlNet、IP-Adapter、局部重绘、高清放大，全部都是往这条主链上插条件、替换模块、或分阶段采样。主链不懂，后面全是玄学；主链懂了，工作流就只是搭积木。
+
+---
+
+### 二、官方确认的五大核心模块分工
+
+#### 1. Checkpoint = 总模型包 / 主脑
+官方 `Load Checkpoint` 文档明确：一个 Checkpoint 会输出三路：
+- `MODEL`：真正负责 latent 去噪的扩散模型
+- `CLIP`：把提示词编码成条件
+- `VAE`：负责像素空间和 latent 空间的双向翻译
+
+**关键理解：**
+Checkpoint 不是“一个单文件黑盒”，而是把生成系统的三块关键部件打包交给你。在 ComfyUI 里它被拆开，所以你能替换其中某一部分，比如外挂一个外部 VAE。
+
+#### 2. CLIP = 提示词翻译器，不负责作画
+`CLIP Text Encode` 节点做的事情只有一个：
+- 把你的提示词转成 `conditioning`
+- 再把 conditioning 交给 KSampler 作为“该往哪里收敛”的语义约束
+
+**结论：**
+CLIP 决定“AI听懂了什么”，不决定“怎么画出来”。
+所以 prompt 改了，通常先影响语义方向；是否能稳定落地，还要看 MODEL 本身是否擅长那种题材。
+
+#### 3. Latent = AI 真正作画的隐空间画布
+官方基础工作流说明里写得很直白：图像不是直接在 RGB 像素层计算，而是在 latent space 里完成结构和细节生成，最后才解码回像素。
+
+**实际意义：**
+- latent 不是低清图片，而是压缩后的语义画布
+- 在 latent 里操作更省算力
+- 所以很多高级流程（重绘、放大、分段采样）都尽量先在 latent 层处理，再最后统一解码
+
+#### 4. KSampler = 生成发动机 / 工作流心脏
+官方与社区文档都把它视为核心节点。它做两件事：
+1. 根据 `seed` 和 `denoise` 往 latent 里加噪或保留部分原信息
+2. 根据 `MODEL + positive/negative conditioning` 逐步去噪，生成目标 latent
+
+**关键参数落地理解：**
+- `seed`：初始噪声起点；固定后更容易复现构图
+- `steps`：去噪轮数；新手先 15~25，别瞎拉太高
+- `cfg`：提示词服从强度；太低会飘，太高会糊、脏、对比过爆
+- `sampler_name + scheduler`：去噪路径和节奏
+- `denoise`：重绘幅度；1.0 接近纯重做，0.2~0.5 更适合精修
+
+#### 5. VAE = latent 与像素世界的翻译官
+官方 `VAE Decode` / `Load VAE` 文档说明：
+- `VAE Encode`：把图片压进 latent
+- `VAE Decode`：把 latent 还原成可见图像
+- 外部 VAE 可替换 checkpoint 自带 VAE，以改善颜色、对比、面部边缘和整体还原质量
+
+**狠话总结：**
+没有 VAE，你拿到的只是 AI 内部草稿，人根本没法看。
+
+---
+
+### 三、标准工作流连线逻辑
+
+#### 1. TXT2IMG（文生图）
+```text
+Load Checkpoint
+ ├─ MODEL ───────────────┐
+ ├─ CLIP → CLIP Text Encode(+) ─┐
+ ├─ CLIP → CLIP Text Encode(-) ─┤
+ └─ VAE ───────────────────────┐│
+                               ↓↓
+Empty Latent Image → KSampler → VAE Decode → Save Image
+```
+
+**逻辑解释：**
+- Empty Latent Image 负责创建初始 latent 画布
+- CLIP 把正负提示词编码成条件
+- KSampler 在 latent 里迭代生成
+- VAE Decode 把 latent 变成最终图像
+
+#### 2. IMG2IMG（图生图）
+```text
+Load Image → VAE Encode → KSampler → VAE Decode → Save Image
+Load Checkpoint
+ ├─ MODEL → KSampler
+ ├─ CLIP → CLIP Text Encode(正/负) → KSampler
+ └─ VAE → VAE Encode / VAE Decode
+```
+
+**逻辑解释：**
+- 输入图先通过 VAE Encode 进入 latent
+- KSampler 按 denoise 强度决定改多少
+- 再用 VAE Decode 输出成图
+
+---
+
+### 四、参数怎么设，别再乱试
+
+#### 文生图初学推荐
+- `steps`: 20
+- `cfg`: 6~8
+- `sampler`: `euler_a` 或 `dpmpp_2m`
+- `scheduler`: `karras`
+- `denoise`: 1.0
+- 分辨率：SD1.5 先从 512~768 边长起步
+
+#### 图生图精修推荐
+- 构图基本不动，只提质感：`denoise 0.2~0.35`
+- 保结构换材质/光影：`denoise 0.35~0.55`
+- 大幅改风格：`denoise 0.6~0.8`
+
+#### 外部 VAE 什么时候该上
+- 出图颜色发灰、过曝、边缘脏
+- 模型自带 VAE 不稳定
+- 做统一美术资产时，需要更一致的颜色还原
+
+社区常见稳妥做法：直接准备一个常用外部 VAE 作为默认解码器，减少不同 checkpoint 自带 VAE 的波动。
+
+---
+
+### 五、为什么 ComfyUI 比 WebUI 更适合工业化
+官方 README 明确强调它是 graph/nodes/flowchart 工作流，优势不是“更难”，而是：
+- 模块能拆开看：知道问题出在 prompt、模型、VAE 还是采样器
+- 节点能复用：同一条骨架可复制成 UI 图标、怪物立绘、宣传图三种生产线
+- 只重算改动部分：更适合迭代和批量出图
+- 更适合接 API 和自动化脚本
+
+**一句话：**WebUI 更像“按钮生图机”，ComfyUI 更像“可编排美术工厂”。
+
+---
+
+### 六、给《光与朽》的直接落地方案
+
+#### 方案1：怪物概念图批量探索
+- 固定一个主 checkpoint
+- 固定一套负面词和基础风格词
+- 只替换怪物关键词、攻击元素和 seed
+- 一次出 4 张 batch，挑最能打的再进下一轮
+
+#### 方案2：UI/技能图标统一风格
+- 同一 checkpoint + 同一 VAE + 同一 sampler/cfg
+- 保持统一尺寸与 prompt 模板
+- 把变量只收敛到“图标主体词”
+
+#### 方案3：主人手绘草图精修
+- 手绘草图导入 → `VAE Encode`
+- `denoise` 先从 0.3 起测
+- 目标只做材质、光影、完成度增强，不要一上来重绘到认不出
+
+---
+
+### 七、今天最重要的结论
+1. **Checkpoint 提供 MODEL/CLIP/VAE 三件套，是总脑包。**
+2. **CLIP 只负责把提示词翻译成条件，不负责画。**
+3. **KSampler 才是真正干活的生成心脏。**
+4. **Latent 是 AI 的施工现场，VAE 是出入口。**
+5. **学 ComfyUI，本质是在学数据流，不是在背按钮。**
+
+---
+
+### 参考来源
+- ComfyUI 官方 README（工作流与模块化特性）
+- cubiq / ComfyUI_Workflows `basic/README.md`（基础工作流、latent / VAE / KSampler 参数解释）
+- BlenderNeko ComfyUI Docs：`LoadCheckpoint.md`、`CLIPTextEncode.md`、`KSampler.md`、`KSampler Advanced.md`、`VAEDecode.md`、`LoadVAE.md`
