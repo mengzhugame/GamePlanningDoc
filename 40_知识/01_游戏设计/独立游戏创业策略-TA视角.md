@@ -1,6 +1,6 @@
 ---
 type: knowledge
-status: draft
+status: review
 created: 2026-04-24
 source_book: GoogleAIStudio 立项规划对话
 source_page: GoogleAIStudio_光与朽立项_2025-09-11.md

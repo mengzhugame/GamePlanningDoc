@@ -1,6 +1,6 @@
 ---
 type: knowledge
-status: draft
+status: review
 created: 2026-04-24
 source_book: 小龙儿主脑多Agent系统输出
 source_page: 20_项目/00_个人IP运营打造/小红书IP诊断报告_20260318 + 抖音IP诊断报告_20260318

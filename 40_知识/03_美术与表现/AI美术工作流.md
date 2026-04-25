@@ -1,6 +1,6 @@
 ---
 type: knowledge
-status: draft
+status: review
 created: 2026-04-24
 source_book: ChatGPT AI美术资源学习对话 + Google光与朽美术对话
 source_page: ChatGPT_AI美术资源学习_2025-09-05 等
