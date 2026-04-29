@@ -2170,3 +2170,250 @@ Claude Code 不是天启型大神。
 - Charles Jones：How I Cut Security Audits from 8 Hours to 3 Minutes Using AI
 - Reddit / ClaudeCode：安全审计与性能评审相关讨论、benchmark 反馈
 - Claude 官方博客搜索摘要：Optimize code performance quickly / Code Review for Claude Code
+
+---
+
+## 今日主题：跨语言/框架迁移的分批验证流水线 —— 先搭桥，再搬家，最后再拆桥
+
+### 为什么现在该学这刀
+路线图里“性能与安全审查”之后，下一个未掌握的大项就是**跨语言/框架迁移**。
+但这事最容易被玩成灾难：一口气全量替换、边改边猜、最后绿灯没亮却已经改烂半个仓库。
+
+所以今天只学一个最值钱、最能落地的具体工作流：
+**分批迁移 + 临时兼容层 + 每批强验证 + 可即时回滚。**
+
+这不是优雅问题，这是生死问题。
+Claude Code 真正适合做迁移，不是因为它会“自动升级”，而是因为它特别适合执行这种**有边界、有批次、有验证门槛**的流水线。
+
+---
+
+## 官方文档给出的硬结论
+
+### 1. 大迁移先开 Plan Mode，先盘点，别先动手
+Claude Code 官方 `Common workflows` 明确建议：
+当任务是**多文件、多步骤、需要先理解代码再下手**时，先进入 **Plan Mode**。
+
+官方给的例子就很直接：
+> “I need to refactor our authentication system to use OAuth2. Create a detailed migration plan.”
+
+这说明官方默认思路不是“上来就改”，而是：
+1. 先只读分析
+2. 先问清边界
+3. 先列迁移计划
+4. 再进入实现
+
+对迁移任务，这一步的真正价值是三件事：
+- 先列出**影响面**
+- 先锁定**非目标**
+- 先排出**批次顺序**
+
+一句话：
+**迁移不是写代码，迁移先是做地图。**
+
+---
+
+### 2. 官方推荐把迁移当“分批 codemod”，不是一次性手术
+高质量迁移实践里，最狠的一点不是模型多聪明，而是流程够土够稳。
+Skywork 对 Claude Code 迁移流程的总结很实用，而且跟官方思路一致：
+
+#### Stage 1：Inventory and plan
+先盘点旧 API / 旧框架的所有调用点，按目录、模块、风险分组。
+
+#### Stage 2：Adapters / shims
+高风险区域先加**临时适配层**，让新旧接口能并存一段时间。
+
+#### Stage 3：Apply changes in batches
+按批次改，每批都限定范围，改完就验证。
+
+#### Stage 4：Cleanup and PR
+确认全绿后，最后拆掉 shim、删掉旧入口、整理 PR。
+
+这套流非常值钱，因为它把“迁移”拆成了：
+**先兼容、再迁移、后清理。**
+
+这和很多人最爱干的蠢事正好相反：
+**先全替换，炸了再补。**
+
+---
+
+### 3. 高风险迁移要先搭 adapter/shim，别让新旧世界硬碰硬
+这是今天最该记死的一刀。
+
+如果你是：
+- Python → Go 服务迁移
+- Vue 2 → Vue 3 / React 迁移
+- 旧 SDK → 新 SDK 升级
+- 老认证流程 → OAuth2 / JWT
+
+那最稳的打法不是让 Claude 一把改完，而是：
+**先让它写一层过渡适配器。**
+
+适配层的作用：
+- 让老调用暂时还能跑
+- 让新实现先局部接入
+- 给测试和回滚争取空间
+- 把破坏面控制在单批次内
+
+官方示例里虽然没把“shim”吹成唯一答案，但迁移工作流已经明确指出：
+> Where risk is high, introduce temporary adapters to minimize breakage.
+
+这句话翻成人话就是：
+**先搭桥，不要直接炸路。**
+
+---
+
+### 4. 每一批都必须过验证门，不绿就不准继续
+这是 Claude Code 迁移里最值钱的纪律。
+
+Skywork 的迁移流程和官方 `Work with tests` / `Plan Mode` 思路一起看，结论非常清楚：
+每一批迁移后都要立刻跑：
+- 单元测试
+- 集成测试
+- type-check
+- lint / format
+- build
+
+而且规则很硬：
+**这一批没绿，就地修；别拖到最后统一收尸。**
+
+因为 Claude 最大的风险不是不会改，
+而是它能很高效地把错误扩散到下一个批次。
+
+迁移越大，越要缩短反馈回路。
+
+---
+
+### 5. 回滚必须是第一等公民，不是失败后的补救
+官方与社区都反复强调一个点：
+Claude Code 的改动应该始终是**diff-first、可审阅、可回退**的。
+
+迁移任务里最稳的双保险是：
+1. **Claude checkpoints**：适合秒回退试错批次
+2. **Git feature branch + 每批提交**：适合保留清晰历史和 PR 审查
+
+正确理解不是“有 checkpoint 就不用 Git”，而是：
+- checkpoint 管即时撤销
+- Git 管团队历史、review 和安全回滚
+
+一句话：
+**checkpoint 是倒车档，Git 是保险杠。**
+两个都得有。
+
+---
+
+## 小龙儿给主人的落地迁移工作流
+
+### 工作流：四段式迁移流水线
+
+#### 第 0 步：先写 `ROADMAP.md`
+必须写清：
+- 迁移目标是什么
+- 非目标是什么
+- 哪些模块先改，哪些后改
+- 每批的验证门是什么
+- 什么时候允许拆掉兼容层
+
+没有这玩意，Claude 只会边改边脑补。
+
+#### 第 1 步：Plan Mode 盘点影响面
+让 Claude 只做三件事：
+1. 找出旧接口/旧框架的所有入口
+2. 按风险和依赖分批
+3. 标注需要兼容层的地方
+
+Prompt 模板：
+“进入 Plan Mode。盘点 `src/` 中所有 `parseV1` 的调用点，按模块分组，给出迁移到 `parseV2` 的批次计划；先不要改代码；同时写清哪些调用点需要 shim 过渡、哪些可以直接替换。”
+
+#### 第 2 步：先做 adapter/shim
+高风险点别直接全换。
+先让 Claude 写：
+- 新旧接口的桥接层
+- TODO 标记
+- 最小保护测试
+
+要求很明确：
+- shim 命名可检索
+- 留清理路径
+- 不准变成永久遗留层
+
+#### 第 3 步：按批迁移，每批只改一类东西
+每一批都要限定成单一职责，比如：
+- 第一批：底层工具函数
+- 第二批：服务层调用
+- 第三批：UI/页面接入
+- 第四批：测试和清理
+
+每批 prompt 都要重申范围：
+“只改 `auth/session/` 目录，不碰 UI，不删 legacy adapter，改完只跑相关测试和 type-check。”
+
+#### 第 4 步：每批立刻过验证门
+过门清单固定为：
+- tests
+- type-check
+- lint / format
+- build
+
+没过就地修，绝不带病进入下一批。
+
+#### 第 5 步：最后拆桥
+只有在下面三条都满足时，才允许让 Claude 删 shim：
+1. 所有调用点已迁完
+2. 测试和构建全绿
+3. PR diff 已经可读、可审
+
+别还没站稳就把桥拆了，那是找死。
+
+---
+
+## 主人最容易犯的 5 个蠢错
+
+### 蠢错 1：让 Claude 直接“全项目升级”
+这等于让它在没地图、没护栏、没回滚点的情况下拆迁。
+
+### 蠢错 2：不写非目标
+你不写“不要碰 UI”“不要顺手重构 unrelated 模块”，Claude 就很可能手痒乱扩散。
+
+### 蠢错 3：没有 shim 还想平滑迁移
+高风险改动不做过渡层，爆炸面会直接拉满。
+
+### 蠢错 4：最后才统一跑测试
+这是把错误积累成雪崩。
+每批都得验，不绿别过门。
+
+### 蠢错 5：没有 feature branch 和分批提交
+最后 diff 一锅粥，review、回滚、追责全废。
+
+---
+
+## 给《光与朽》或我们工具链的直接用法
+如果后面我们要做：
+- Unity 老存档格式迁新字段
+- 运营后台旧接口切新接口
+- 数据工具从 Python 脚本迁到正式服务
+- Web 前端从旧组件体系迁新体系
+
+都直接套这套：
+**Plan Mode 盘点 → shim 过渡 → 分批迁移 → 每批验证 → 最后拆桥。**
+
+这套打法的本质不是保守，
+而是把高风险变化切成**可证伪、可撤销、可审查**的小块。
+Claude 在这种约束下会很强；
+没约束，它就容易把仓库改成事故现场。
+
+---
+
+## 今日结论
+今天最值钱的一句话：
+
+**Claude Code 做迁移时，先搭桥，再搬家，最后再拆桥。**
+
+Plan Mode 负责看清地图，adapter/shim 负责压缩爆炸半径，分批验证负责防止错误扩散，checkpoint + Git 负责把回滚做成默认能力。
+
+这才是专家级迁移工作流。
+
+---
+
+## 参考来源
+- Claude Code 官方文档：Common workflows（Plan Mode / complex refactor / tests）
+- Claude Code 官方文档：Create custom subagents（Explore / Plan / context isolation / tool constraints）
+- Skywork：How to Use Claude Code Plugin for Safe Refactoring & Migration（staged migration / adapters / verification / rollback）

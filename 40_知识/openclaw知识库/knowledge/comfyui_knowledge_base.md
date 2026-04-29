@@ -4059,3 +4059,366 @@ Load Checkpoint
 - ComfyUI 官方 README（工作流与模块化特性）
 - cubiq / ComfyUI_Workflows `basic/README.md`（基础工作流、latent / VAE / KSampler 参数解释）
 - BlenderNeko ComfyUI Docs：`LoadCheckpoint.md`、`CLIPTextEncode.md`、`KSampler.md`、`KSampler Advanced.md`、`VAEDecode.md`、`LoadVAE.md`
+
+# 📚 ComfyUI 高级节点精讲学习笔记 (2026-04-27)
+## 🎯 今日攻克节点：精准局部重绘（Inpainting）与蒙版（Mask）工作流
+
+### 一、为什么今天该学这个
+前面的放大、ControlNet、IP-Adapter 都是在“整张图”层面发力。
+真正进入商用美术管线后，最值钱的能力反而是：**不推翻整张图，只改坏掉的 5% 区域**。
+
+对《光与朽》这尤其重要：
+- 怪物图已经八成对，只想重做眼睛、武器、核心发光区。
+- UI 图标主体已经定了，只想修边缘、符文、金属结构。
+- 买量首图已经能用，只想把一处构图瑕疵救回来。
+
+不会局部重绘，就只能整张重抽，效率低得离谱，画风也容易漂。
+
+---
+
+### 二、先把核心结论说死
+1. **Inpainting 的本质不是“修图”，而是“限定采样范围”。**
+2. **Mask 质量决定上限，Prompt 只是在已有边界里发号施令。**
+3. **想 100% 重做遮罩区：走 `VAE Encode (for Inpainting)` + 专用 Inpaint 模型。**
+4. **想保留原局部结构、低 denoise 精修：走 `Set Latent Noise Mask` 或 `InpaintModelConditioning` 路线。**
+5. **大图局部重绘别傻乎乎整张采样，优先 Crop & Stitch。**
+
+---
+
+### 三、ComfyUI 官方标准内绘链路
+
+#### 1）官方最基础工作流
+```text
+Load Checkpoint（inpaint checkpoint）
+Load Image（带 mask 或从 Mask Editor 生成 mask）
+CLIP Text Encode（正/负）
+VAE Encode (for Inpainting)
+KSampler
+VAE Decode
+Save Image
+```
+
+ComfyUI 官方教程明确强调三件事：
+- 局部重绘常见场景是**缺陷修复**与**局部细节优化**。
+- `Mask Editor` 是官方推荐的手绘蒙版入口。
+- `VAE Encode (for Inpainting)` 的 `mask` 会告诉采样器**哪些区域需要被重绘**。
+
+#### 2）`VAE Encode (for Inpainting)` 四个关键输入
+- `pixels`：原始图像
+- `vae`：当前模型配套 VAE
+- `mask`：需要修改的区域
+- `grow_mask_by`：把遮罩向外扩一圈，避免接缝硬切
+
+#### 3）官方推荐模型思路
+官方基础教程直接用 `512-inpainting-ema.safetensors`，并指出：
+- 专用 inpaint 模型的边缘过渡更自然
+- 结果通常比普通模型直接硬改更稳
+
+---
+
+### 四、两条最关键的内绘路线：别再混
+
+#### 路线 A：专用 Inpaint 模型硬替换
+适合：
+- 去掉错误手、坏掉的眼睛、奇怪物件
+- 背景里删东西
+- 想让遮罩区几乎重新生成
+
+标准理解：
+```text
+原图 + mask → VAE Encode (for Inpainting) → KSampler
+```
+
+特点：
+- 遮罩区改动幅度大
+- 通常需要较高 denoise
+- 边缘融合效果取决于 mask 扩张与模型质量
+
+关键判断：
+- 如果你是“这块我不要了，重做”，走这条
+- 如果你是“这块已经差不多，只要微调”，别硬走这条
+
+#### 路线 B：保留原内容的精修路线
+适合：
+- 改怪物眼神、武器形状、局部材质
+- 保留原构图，只修某一块
+- 想低 denoise 微创手术
+
+两种常见做法：
+1. `VAE Encode` + `Set Latent Noise Mask`
+2. `InpaintModelConditioning`（社区大量工作流更爱用）
+
+社区文档和节点说明反复强调：
+- `Set Latent Noise Mask` 的本质是：**只给遮罩区加噪声，让 KSampler 只在那块动手**。
+- Acly 的 `comfyui-inpaint-nodes` 也明确说：
+  - 直接用 `VAE Encode (for Inpainting)` 时，不适合低 denoise 保留既有内容
+  - 想做“refine existing content”，要走 `InpaintModelConditioning` 这类路线
+
+一句话判断：
+- **重做** → Inpaint 模型
+- **精修** → Noise Mask / InpaintModelConditioning
+
+---
+
+### 五、Mask 才是真正的命门
+
+#### 1）手绘 Mask：最稳
+官方教程推荐直接右键 `Load Image` → `Open in MaskEditor`。
+适合：
+- UI 图标
+- 小面积武器、眼睛、符文
+- 你已经知道到底哪里要改
+
+实战规则：
+- 遮罩内部尽量纯白，别灰
+- 边缘宁可多包 5~15 像素，也别卡死在轮廓线上
+- 错误主要来自“遮罩太抠门”而不是“遮罩太大”
+
+#### 2）SAM 自动分割：提效神器
+`storyicon/comfyui_segment_anything` 提供 GroundingDINO + SAM 路线：
+- GroundingDINO：靠语义词先找目标
+- SAM：做精细分割
+
+模型体积要有概念：
+- `mobile_sam`：39MB，轻量快速，适合预览
+- `sam_vit_b`：375MB，轻量正式用
+- `sam_vit_l`：1.25GB
+- `sam_vit_h`：2.56GB，精度高但重
+- HQ 版更强调边缘精细度
+
+我的建议：
+- 预览/批处理：先 `mobile_sam` 或 `sam_vit_b`
+- 角色边缘、武器轮廓、复杂发丝：再上 HQ 或大模型
+
+#### 3）SAM 不是什么神
+B 站与社区经验都很一致：
+- 小图、主体清晰时，SAM 很香
+- 大图、复杂遮挡、边界模糊时，SAM 会慢，也会分歪
+- 最终商用品质，常常还是 **SAM 选区 + 手工修遮罩** 最稳
+
+---
+
+### 六、最值钱的参数，不要瞎拧
+
+#### 1）`grow_mask_by`
+用途：给边缘留过渡区，避免接缝。
+
+我的起手建议：
+- 小修补（眼睛/按钮边角）：`4~8`
+- 中修补（武器/头部局部）：`8~16`
+- 大修补（整块护甲/大面积背景）：`16~32`
+
+判断逻辑：
+- 接缝明显、边缘像贴纸：加大
+- 改坏了周围原图：减小
+
+#### 2）`denoise`
+- 专用 Inpaint 模型路线：常用高值，接近重做
+- Noise Mask / InpaintModelConditioning 路线：可用低值精修
+
+我的实战起手值：
+- 轻微精修：`0.2~0.35`
+- 中度重绘：`0.4~0.6`
+- 近乎重做：`0.75~1.0`
+
+#### 3）遮罩羽化 / blur
+社区节点普遍强调：
+- 硬边 mask 容易出拼贴感
+- 轻微 blur 能让过渡自然
+
+起手值：
+- 图标/UI：`2~6`
+- 角色/怪物局部：`6~12`
+- 大面积背景：`12~24`
+
+#### 4）上下文（context）
+局部重绘最常见翻车，不是 prompt 不行，而是**给模型看的上下文太少**。
+`Crop & Stitch` 节点里的 `context_from_mask_extend_factor` 非常关键：
+- `1.0`：基本不扩
+- `1.5`：稳妥起手
+- `2.0`：需要更多环境关系时用
+
+如果你要改怪物武器，最好让模型同时看到手臂、肩膀和部分胸口；
+只给它看一块刀柄，它很容易长歪。
+
+---
+
+### 七、超大图局部重绘：Crop & Stitch 才是生产级答案
+
+`ComfyUI-Inpaint-CropAndStitch` 这套节点，我直接给高评价：这玩意儿是真生产力，不是玩具。
+
+它的优势：
+1. 只对遮罩附近采样，**速度快很多**
+2. 能先裁切再放大到模型舒服的分辨率
+3. 不会让未遮罩区域重复走 VAE 编解码，保真度更高
+4. 自动 blend 回原图，边缘更稳
+
+#### 生产级参数理解
+- `output_resize_to_target_size`
+  - SD1.5：优先 `512x512`
+  - SDXL / Flux：优先 `1024x1024`
+- `output_padding`
+  - 常用 `32`
+- `mask_expand_pixels`
+  - 常用 `8~24`
+- `mask_blend_pixels`
+  - 常用 `16~32`
+- `context_from_mask_extend_factor`
+  - 起手 `1.5`
+- `device_mode`
+  - 默认 GPU，超大图/长视频爆显存再切 CPU
+
+#### 什么时候必须用 Crop & Stitch
+- 2K/4K 宣传图改局部
+- 买量首图换主体局部造型
+- Boss 海报改脸、改武器、改发光区
+- UI 大图里只修一个角标或按钮，但不能损失整图清晰度
+
+---
+
+### 八、前处理与后处理：把接缝问题狠狠干掉
+
+#### 1）前处理：先填遮罩区再采样
+Acly 的 `comfyui-inpaint-nodes` 给了很清晰的思路：
+
+`Fill Masked` 三种模式：
+- `neutral`：灰填充，适合要“凭空长新内容”
+- `telea`：借周围颜色填，适合物体移除
+- `navier-stokes`：同样是边界补全，但更偏连续纹理过渡
+
+我的建议：
+- 你想加新器官/新结构/新部件 → `neutral`
+- 你想擦掉杂物/去字/去瑕疵 → `telea` 优先
+
+#### 2）后处理：Color Match
+如果你发现：
+- 遮罩外基本没变
+- 但整块输出有统一偏色/偏亮
+
+那就上 `Color Match (Masked)`。
+它的价值不是让局部更细，而是把整体色相、亮度拉回原图体系。
+
+---
+
+### 九、三套最值得主人直接抄的工作流
+
+#### 模板 A：怪物“眼睛 / 核心 / 武器”精修
+适合《光与朽》当前最常见的需求。
+
+```text
+原图
+→ 手绘 Mask / SAM 分割
+→ VAE Encode
+→ Set Latent Noise Mask
+→ KSampler（denoise 0.25~0.4）
+→ VAE Decode
+```
+
+参数纪律：
+- mask 稍微包住周围一圈
+- 固定 seed 先只测 denoise
+- prompt 只描述要改的局部，不要整张图都重新下命令
+
+#### 模板 B：坏手坏脸坏结构，直接重做
+```text
+原图
+→ MaskEditor
+→ VAE Encode (for Inpainting)
+→ Inpaint Checkpoint / Fooocus Inpaint
+→ KSampler（denoise 0.75~1.0）
+→ VAE Decode
+```
+
+适合：
+- 长歪的手
+- 不想要的配件
+- 背景脏东西
+
+#### 模板 C：4K 宣传图只修一块
+```text
+原图 + mask
+→ Inpaint Crop
+→ 标准采样 / InpaintModelConditioning
+→（可接放大或 Hires Fix）
+→ Inpaint Stitch
+```
+
+适合：
+- 商店头图
+- 海报
+- 买量封面
+- 封面里只改角色表情或武器
+
+---
+
+### 十、《光与朽》里的直接落地打法
+
+#### 场景 1：怪物图统一后，修每只怪的“发光器官”
+不要整张图重做。
+先固定同一风格母图，之后只对：
+- 眼睛
+- 核心能源仓
+- 武器末端
+- 护甲裂缝发光
+做局部重绘。
+
+收益：
+- 保住整体造型统一
+- 只在“卖点区域”做视觉差异
+- 怪物系列图能更快量产
+
+#### 场景 2：UI 技能图标去脏、补符文、改轮廓
+UI 图标经常主体对了，但边缘脏、符号太糊。
+做法：
+- 小遮罩圈住图标中心或边缘
+- 低 denoise 精修
+- prompt 只写：`sharp rune engraving, clean silhouette, metallic edge, centered icon`
+
+收益：
+- 不会毁掉整套图标风格
+- 特别适合批量修图标而不是重生图
+
+#### 场景 3：买量素材首图 A/B 测试
+同一张封面别重做 10 张。
+应该：
+- 只换主怪眼神
+- 只换激光颜色
+- 只换爆点区域亮度与碎片
+- 只改角色/炮塔的一个关键动作部位
+
+收益：
+- 素材变量更纯
+- 更容易知道 CTR 变化到底是哪个视觉点带来的
+
+---
+
+### 十一、最容易翻车的坑
+1. **Mask 不够白**：看起来白，实际不是 255，结果原图漏出来。
+2. **遮罩扩张不够**：边缘直接拼贴，像补丁。
+3. **上下文太少**：模型不知道局部该怎么接身体或环境。
+4. **本来该低 denoise 精修，却用专用 inpaint 高强度重做。**
+5. **大图直接整张内绘**：又慢又糊，还破坏未修改区域。
+6. **Fooocus Inpaint 乱配 Turbo/Lightning/Hyper 这种蒸馏 merge**：仓库明确说不行。
+7. **自动分割后不人工复核**：SAM 只负责快，不负责替你背锅。
+
+---
+
+### 十二、今天最重要的结论
+1. **局部重绘的核心不是 prompt，而是 mask。**
+2. **`VAE Encode (for Inpainting)` 更像“重做遮罩区”，`Set Latent Noise Mask / InpaintModelConditioning` 更像“微创精修”。**
+3. **大图局部修图必须养成 Crop & Stitch 习惯。**
+4. **SAM 是提效器，不是最终审美判断器。**
+5. **对《光与朽》，最值钱的不是重新生一张怪物，而是把现有可用图快速救成商用品质。**
+
+---
+
+### 参考来源
+- ComfyUI 官方教程：<https://docs.comfy.org/tutorials/basic/inpaint>
+- ComfyUI 官方示例：<https://comfyanonymous.github.io/ComfyUI_examples/inpaint/>
+- BlenderNeko 文档：`VAE Encode (for Inpainting)`、`Set Latent Noise Mask`
+- GitHub：Acly / `comfyui-inpaint-nodes`
+- GitHub：storyicon / `comfyui_segment_anything`
+- GitHub：lquesada / `ComfyUI-Inpaint-CropAndStitch`
+- Reddit / r/StableDiffusion：`inpainting only on masked area in ComfyUI`
+- YouTube：`EASY Inpainting in ComfyUI with SAM`、`Inpainting only on masked area, fast outpainting, and seamless blending`
+- Bilibili：`Comfy UI 基础教程(七)——图生图高级蒙版重绘`、`ComfyUI系列教程【4】使用蒙版进行图像修复`

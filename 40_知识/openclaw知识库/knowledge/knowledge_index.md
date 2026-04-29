@@ -1,6 +1,6 @@
 # 知识库目录索引
 
-**最后更新**: 2026-04-19
+**最后更新**: 2026-04-27
 **用途**: 快速查找已积累的知识,支持智能问答
 
 ---
@@ -26,6 +26,7 @@
 - **game_breakdowns/isle_of_arrows.md** - 《Isle of Arrows》拆解（图块放置塔防、扩岛布局、跳牌经济、邻接联动）
 - **game_breakdowns/tower_dominion.md** - 《Tower Dominion》拆解（英雄化塔防、地形造卡口、阵营差异、Doctrine构筑）
 - **game_breakdowns/lucky_defense.md** - 《Lucky Defense》拆解（合作塔防、随机召唤、三合一升阶、盘面回收）
+- **game_breakdowns/thronefall.md** - 《Thronefall》拆解（昼夜守城、固定点位取舍、英雄参战、强广告可读性）
 
 ### 代码模板
 - **code_templates/** - Unity代码模板库

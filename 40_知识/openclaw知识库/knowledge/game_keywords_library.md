@@ -110,6 +110,9 @@
 - 盘面回收 (Board Recycling)
 - 经济托底 (Economy Safety Net)
 - 核心追逐 (Chase Units)
+- 即时闪避/弹反 (Real-time Dodge/Parry)
+- 行动点循环 (AP Loop)
+- 队伍协同构筑 (Party Synergy Build)
 
 ---
 
@@ -187,6 +190,7 @@
 - 文字冒险 (Text Adventure)
 - 数值膨胀 (Stat Inflation)
 - 社交赌场式奖励流 (Social Casino Reward Loop)
+- 法式奇幻/美好年代 (Belle Époque Fantasy)
 
 ---
 
@@ -220,6 +224,7 @@
 | Tower Dominion | 路径塑形+摆塔+英雄构筑 | 塔防+异星入侵 | 地形造卡口+阵营差异+Doctrine构筑 |
 | Lucky Defense | 随机召唤+合成升阶+双人协防 | 魔幻塔防+合作 | 极致RNG开奖+盘面回收修正+局外成长托底 |
 | R.E.P.O. | 抓取+搬运+协作撤离 | 合作恐怖+工业废墟 | 物理搬运本体化+距离语音放大翻车喜剧+低价社交裂变 |
+| Clair Obscur: Expedition 33 | 普攻回能+技能爆发+即时闪避弹反 | 法式奇幻+回合制RPG | 用实时防御把传统回合制拉出临场参与感，高规格演出强化沉浸 |
 
 ### 光与朽的组合
 - **核心动词**: 射击 + 控制 + 选择升级
@@ -321,4 +326,5 @@
 | Blue Prince | 房间起草+路径规划+资源管理 | 豪宅谜题+Roguelite | 把解谜场景变成玩家自己铺出来的动态地图，用知识成长替代纯数值成长 |
 | Isle of Arrows | 图块放置+铺路塑形+守线 | 桌游化塔防+Roguelike | 把地图生成权交给玩家，用抽牌铺图和空间取舍替代传统固定路径塔防 |
 | R.E.P.O. | 抓取+搬运+撤离 | 合作恐怖+工业回收 | 用物理失控和距离语音把每次失败都变成可传播内容 |
+| Clair Obscur: Expedition 33 | 普攻回能+技能爆发+即时闪避/弹反 | 法式奇幻+回合制RPG | 用实时防御提升回合制参与感，再用高规格演出放大Boss战价值 |
 
