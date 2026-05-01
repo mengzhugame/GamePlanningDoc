@@ -1,9 +1,9 @@
 # UI 动画工具 — UIAnimationHelper
 
-> **模板编号**：07  
-> **来源工程**：LightVSDecay（光与朽）  
-> **提取日期**：2026-04-14  
-> **适用场景**：任何需要 UI 属性数值变化反馈的项目  
+> **模板编号**：07
+> **来源工程**：LightVSDecay（光与朽）
+> **提取日期**：2026-04-14（首版）/ 2026-04-29（验证：双项目通用，新增 UI 栏整体 Q 弹用例 + 与 [[09_CoinFlyAnimation]] / [[10_FloatingTextSystem]] 的协同）
+> **适用场景**：任何需要 UI 属性数值变化反馈的项目
 > **复用价值**：⭐⭐⭐⭐⭐
 
 ---
@@ -262,3 +262,64 @@ private IEnumerator RunAnimateStat(TextMeshProUGUI text, int from, int to, strin
 4. **TextMeshPro 依赖**：需要项目中已导入 TextMeshPro 包（Unity Package Manager）。
 
 5. **命名空间**：复制时将 `namespace YourProject.UI` 改为项目实际命名空间。
+
+---
+
+## UI 栏整体 Q 弹（资源栏拿到金币时的标准用法）
+
+光与朽 `TopAreaController` 与美妆叠叠乐 `CurrencyDisplayUI` 共用模式：**金币变化事件触发时，先 punch 顶部资源栏的 RectTransform，再 RollInt 数字**。
+
+```csharp
+// 在 TopAreaController（或任意资源栏控制器）里：
+private void OnEnable()
+{
+    CurrencyManager.OnGoldChanged += OnGoldChanged;
+}
+
+private int _displayedGold;
+
+private void OnGoldChanged(int newAmount)
+{
+    StopAllCoroutines();
+    StartCoroutine(AnimateGoldChange(_displayedGold, newAmount));
+    _displayedGold = newAmount;
+}
+
+private IEnumerator AnimateGoldChange(int from, int to)
+{
+    // 资源栏整体 punch（不只是数字 — 让玩家眼睛看到"整个栏抖动"）
+    yield return UIAnimationHelper.PlayScalePunch(
+        goldBarRect,             // 整个金币区域的 RectTransform（含图标 + 数字）
+        punchScale: 1.15f,
+        duration: 0.12f,
+        useUnscaledTime: false); // 跟随战斗 TimeScale
+
+    // 同时刷数字
+    yield return UIAnimationHelper.RollInt(goldText, from, to, duration: 0.4f);
+}
+```
+
+**关键决策**：punch 的 `rect` 用整个栏（图标 + 数字一起抖），不要只 punch 数字 TMP——后者视觉太弱，玩家容易没看到。
+
+---
+
+## 与 [[09_CoinFlyAnimation]] 的协同（标准"金币掉落 → 入袋 → 数字跳"流程）
+
+```csharp
+// 怪物死亡掉金币
+SimpleFlyAnimation.Instance.FlyToTarget(
+    coin.transform,
+    targetPos: TopAreaController.Instance.GoldBarWorldPos,
+    duration: 0.4f,
+    onComplete: () => Destroy(coin),
+    onNearComplete: () =>
+    {
+        // 飞到 80% 时：先 punch 金币栏 + 同步累加数字
+        currencyManager.AddGold(1);
+        StartCoroutine(UIAnimationHelper.PlayScalePunch(
+            TopAreaController.Instance.GoldBarRect,
+            punchScale: 1.15f, duration: 0.12f, useUnscaledTime: false));
+    });
+```
+
+视觉效果：金币飞到 80% 路径 → 资源栏抖一下并数字 +1 → 金币消失。玩家感觉"刚好同步"。

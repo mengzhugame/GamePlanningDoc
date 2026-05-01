@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "30_openclaw_inbox/2026-04-25/小游戏视频雷达_2026-04-25.md",
+                "file": "40_知识/openclaw知识库/knowledge/art_research/weekly_art_trend_archive.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "小游戏视频雷达_2026-04-25"
+              "title": "weekly_art_trend_archive"
             }
           }
         ]
@@ -78,8 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 397.5,
-    "collapsed": true
+    "width": 397.5
   },
   "right": {
     "id": "ddc5a722345a28ce",
@@ -172,10 +171,10 @@
             "state": {
               "type": "file-properties",
               "state": {
-                "file": "30_openclaw_inbox/2026-04-25/小游戏视频雷达_2026-04-25.md"
+                "file": "40_知识/openclaw知识库/knowledge/art_research/weekly_art_trend_archive.md"
               },
               "icon": "lucide-info",
-              "title": "小游戏视频雷达_2026-04-25的笔记属性"
+              "title": "weekly_art_trend_archive的笔记属性"
             }
           }
         ],
@@ -196,44 +195,52 @@
       "bases:新建数据库": false
     }
   },
-  "active": "0c92779f5525bfcc",
+  "active": "f1071ab6a8b10c33",
   "lastOpenFiles": [
-    "20_项目/02_光与朽项目/03_开发计划/~$计划-任务和BUG计划.docx",
-    "90_系统/人生维度/意义信念与死亡感.md",
-    "90_系统/人生维度/兴趣审美与玩乐.md",
+    "20_项目/03_概念验证_2026-05/90秒极限防线_视频验证.md",
+    "20_项目/03_概念验证_2026-05/荒废花园复苏经营_视频验证.md",
+    "20_项目/03_概念验证_2026-05/00_概念池.md",
+    "20_项目/03_概念验证_2026-05",
+    "10_流水/2026-05-01.md",
+    "10_流水/2026-04-30.md",
+    "90_系统/openclaw/wx_stats/page_dump.json",
+    "90_系统/openclaw/wx_stats/05_channel_analysis_retry.png",
+    "90_系统/openclaw/wx_stats/04_channel_analysis.png",
+    "90_系统/openclaw/wx_stats/04_channel_analysis.json",
+    "90_系统/openclaw/wx_stats/03_user_profile.png",
+    "90_系统/openclaw/wx_stats/02_visit_analysis.png",
+    "90_系统/openclaw/wx_stats/01_gailan.png",
+    "90_系统/openclaw/wx_stats",
+    "90_系统/openclaw/tmp_gailan.png",
+    "90_系统/openclaw/tencent_ads/page_text.json",
+    "90_系统/openclaw/tencent_ads/page.png",
+    "90_系统/openclaw/tencent_ads/data_page_text.json",
+    "90_系统/openclaw/tencent_ads/data_page.png",
+    "90_系统/openclaw/tencent_ads",
+    "90_系统/openclaw/memory/2026-04-27.md",
+    "90_系统/openclaw/knowledge/user_model_daily_archive/2026-04-27.md",
+    "90_系统/openclaw/knowledge/user_model_daily_archive",
+    "90_系统/openclaw/knowledge/user_model.md",
+    "90_系统/openclaw/knowledge/daily_insights_archive.md",
+    "90_系统/openclaw/knowledge/_research/everplay_ar2024.pdf",
+    "90_系统/openclaw/knowledge/_research/devolver_fy23.pdf",
+    "40_知识/openclaw知识库/knowledge/game_breakdowns/thronefall.md",
+    "40_知识/06_发行与运营/微信小游戏运营教训.md",
+    "40_知识/06_发行与运营/个人IP运营方法论.md",
+    "40_知识/06_发行与运营/发行商沟通经验.md",
+    "40_知识/06_发行与运营/独立游戏商业化路径.md",
+    "40_知识/06_发行与运营/20260317_游戏行业动态.md",
+    "40_知识/03_美术与表现/AI美术工作流.md",
+    "40_知识/01_游戏设计/README.md",
+    "40_知识/01_游戏设计/爽感设计系统.md",
+    "40_知识/01_游戏设计/美妆叠叠乐-女性向休闲游戏策划经验.md",
+    "40_知识/01_游戏设计/光与朽-战斗数值设计经验.md",
+    "40_知识/01_游戏设计/光与朽-玩家反馈与版本迭代方法论.md",
+    "40_知识/01_游戏设计/光与朽-立项设计决策.md",
+    "40_知识/01_游戏设计/独立游戏创业策略-TA视角.md",
+    "40_知识/01_游戏设计/独立游戏差异化策略.md",
+    "40_知识/01_游戏设计/超休闲游戏设计方法论.md",
     "90_系统/人生维度/成长与认知.md",
-    "90_系统/人生维度/自我关系.md",
-    "90_系统/人生维度/家庭与责任.md",
-    "90_系统/人生维度/爱情与亲密关系.md",
-    "90_系统/人生维度/朋友与社群.md",
-    "90_系统/人生维度/金钱与安全感.md",
-    "90_系统/人生维度/身体与精力.md",
-    "10_流水/2026-04-28.md",
-    "90_系统/schemas/user-profile-dimension-schema.md",
-    "90_系统/人生维度/事业与创造.md",
-    "90_系统/人生维度",
-    "20_项目/休闲小游戏立项流程.md",
-    "休闲小游戏立项流程.md",
-    "新建 Markdown.md",
-    "知识库使用指南.md",
-    "10_流水/2026-04-27 - 副本 (4).md",
-    "10_流水/2026-04-27 - 副本 (3).md",
-    "10_流水/2026-04-27 - 副本 (2).md",
-    "10_流水/2026-04-27 - 副本.md",
-    "10_流水/2026-04-27.md",
-    "10_流水/新建 Markdown.md",
-    "90_系统/AI深度交流议题库.md",
-    "微信广告游戏买量分类.md",
-    "游戏买量分类.md",
-    "10_流水/2026-04-26.txt",
-    "10_流水/新建 文本文档.txt",
-    "Doc",
-    "30_openclaw_inbox/2026-04-25",
-    "40_知识/00_工作流",
-    "Doc/Claude-2026-04-24.txt",
-    "Doc/新建 文本文档.txt",
-    "60_索引/项目文件/项目文件全景图.md.tmp.39924.1777037957678",
-    "60_索引/项目文件",
     "未命名.canvas",
     "20_项目/02_光与朽项目/01_策划文档/熔岩火山BOSS.png"
   ]

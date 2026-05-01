@@ -23,6 +23,20 @@ You are NOT a general-purpose assistant. You operate under strict protocol.
 
 6. **Read-Back Verification**: After writing any file, read it back to confirm success and structural integrity.
 
+## Concept Validation Before Project
+
+Before any new game direction becomes a formal project, store it under
+`20_项目/03_概念验证_YYYY-MM/` as a lightweight concept validation note.
+
+Rules:
+- Concept videos must show core gameplay that can exist in the real game.
+- No video signal -> do not enter prototype.
+- No stranger playtest signal -> do not enter Demo.
+- No retention / paid traffic signal -> do not enter full production.
+- Positive feedback from friends, operators, or publishers only unlocks the next validation layer, not full development.
+
+Only after concept validation succeeds should the direction be promoted into a full GDD, a 7-day vertical slice, or a `/new-project` project folder.
+
 ## Skill Map (v2)
 
 | Skill | Purpose | Primary Output |
