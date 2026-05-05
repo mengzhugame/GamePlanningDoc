@@ -18,16 +18,16 @@ review_count: 1
 
 ## 工具链全图
 
-| 阶段 | 工具 | 用途 |
-|------|------|------|
-| 前期概念 | MidJourney / ImageFX / Ideogram | 快速氛围图，确认风格方向 |
-| 中期生产 | Stable Diffusion WebUI + ControlNet | 固定姿势/构图，批量生产 |
-| 风格统一 | LoRA 微调 | 训练项目专属风格，解决角色/场景一致性 |
-| 大图清晰 | Tiled Diffusion | 高分辨率细节强化 |
-| 细节修补 | Inpaint | 局部重绘，修复瑕疵 |
-| 后期修饰 | Photoshop / Clip Studio Paint | 边框调整、配色统一、手动修补 |
-| 2.5D 方案 | Blender 45° 固定角度渲染 | 把 2D 图片渲染成游戏卡片风格 |
-| 动效 | After Effects | 动态 Banner / UI 动效 |
+| 阶段      | 工具                                  | 用途                  |
+| ------- | ----------------------------------- | ------------------- |
+| 前期概念    | MidJourney / ImageFX / Ideogram     | 快速氛围图，确认风格方向        |
+| 中期生产    | Stable Diffusion WebUI + ControlNet | 固定姿势/构图，批量生产        |
+| 风格统一    | LoRA 微调                             | 训练项目专属风格，解决角色/场景一致性 |
+| 大图清晰    | Tiled Diffusion                     | 高分辨率细节强化            |
+| 细节修补    | Inpaint                             | 局部重绘，修复瑕疵           |
+| 后期修饰    | Photoshop / Clip Studio Paint       | 边框调整、配色统一、手动修补      |
+| 2.5D 方案 | Blender 45° 固定角度渲染                  | 把 2D 图片渲染成游戏卡片风格    |
+| 动效      | After Effects                       | 动态 Banner / UI 动效   |
 
 ---
 

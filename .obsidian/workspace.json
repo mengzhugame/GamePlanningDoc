@@ -8,17 +8,17 @@
         "type": "tabs",
         "children": [
           {
-            "id": "0c92779f5525bfcc",
+            "id": "bedaa84771b10a4b",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "90_系统/routines/user-pain-scan-prompt.md",
+                "file": "inbox.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "user-pain-scan-prompt"
+              "title": "inbox"
             }
           }
         ]
@@ -171,10 +171,10 @@
             "state": {
               "type": "file-properties",
               "state": {
-                "file": "90_系统/routines/user-pain-scan-prompt.md"
+                "file": "inbox.md"
               },
               "icon": "lucide-info",
-              "title": "user-pain-scan-prompt的笔记属性"
+              "title": "inbox的笔记属性"
             }
           }
         ],
@@ -195,53 +195,54 @@
       "bases:新建数据库": false
     }
   },
-  "active": "0c92779f5525bfcc",
+  "active": "bedaa84771b10a4b",
   "lastOpenFiles": [
-    "00_草稿/创意库/~$闲游戏策划案生成指南-收纳绿洲.docx",
-    "00_草稿/创意库/~$超休闲小游戏分析报告.xlsx",
-    "00_草稿/创意库/~$50个游戏的题材，例如（人群、食物、交通工具 等等）.xlsx",
-    "00_草稿/创意库/~$个超休闲小游戏创意.docx",
-    "00_草稿/创意库/~$个小游戏创意-20250912.docx",
-    "00_草稿/创意库/~$AI美术关键词和网站.xlsx",
-    "00_草稿/创意库/12种创意玩法.md",
-    "70_计划/2026-05_行动清单.md.tmp.8836.1777941763984",
-    "90_系统/skills/_INDEX.md.tmp.8836.1777941761381",
-    "40_知识/07_游戏拆解库/2026-05_装备全靠转.md",
-    "70_计划/2026-05_行动清单.md.tmp.8836.1777913722844",
-    "90_系统/skills/_INDEX.md.tmp.8836.1777913670077",
-    "90_系统/skills/_INDEX.md.tmp.8836.1777913668264",
-    "90_系统/routines/user-pain-scan-prompt.md",
-    "90_系统/skills/skill-idea-score.md",
-    "90_系统/templates/idea-score-template.md",
-    "90_系统/schemas/idea-score-schema.md",
-    "40_知识/07_游戏拆解库/2026-05_我的小家.md",
-    "40_知识/07_游戏拆解库/2026-05_Lilys_Garden.md",
-    "40_知识/07_游戏拆解库/2026-05_Merge_Gardens.md",
-    "10_流水/2026-05-05.md",
-    "40_知识/07_游戏拆解库/2026-05_保卫向日葵.md",
-    "40_知识/07_游戏拆解库/2026-05_打个螺丝.md",
-    "40_知识/07_游戏拆解库/2026-05_向僵尸开炮.md",
-    "40_知识/07_游戏拆解库/2026-05_噩梦守护战.md",
-    "40_知识/01_游戏设计/立项铁律_2026-05.md",
-    "40_知识/07_游戏拆解库/2026-02_羊了个羊.md",
-    "40_知识/07_游戏拆解库/_INDEX.md",
-    "40_知识/07_游戏拆解库/README.md",
-    "90_系统/templates/game-teardown-template.md",
-    "90_系统/schemas/game-teardown-schema.md",
-    "40_知识/01_游戏设计/独立游戏差异化策略.md",
-    "70_计划/2026-05_行动清单.md",
-    "90_系统/skills/skill-start.md",
-    "90_系统/skills/_INDEX.md",
-    "知识库使用指南.md",
+    "50_商业/00_个人IP运营打造/每周IP内容模板库.md",
+    "50_商业/00_个人IP运营打造/抖音IP诊断与重启报告_20260318.md",
+    "50_商业/00_个人IP运营打造/小红书标题备选方案.md",
+    "50_商业/00_个人IP运营打造/小红书数据分析报告.md",
+    "50_商业/00_个人IP运营打造/小红书打造人设.docx",
+    "50_商业/00_个人IP运营打造/小红书个人IP成长规划.md",
+    "50_商业/00_个人IP运营打造/小红书IP诊断与重启报告_20260318.md",
+    "50_商业/00_个人IP运营打造",
+    "00_全局地图.md",
+    "index.md",
+    "WIKI.md",
+    "README.md",
+    "inbox.md",
+    "reports/low-confidence.md",
+    "待整理文件/Unity连接真机命令.txt",
+    "待整理文件/OpenClaw_多Agent使用指南.md",
+    "待整理文件/AI深度交流议题库.md",
+    "待整理文件/00_知识系统体检报告_2026-04-24.md",
+    "待整理文件/00_知识库搭建方案.md",
+    "待整理文件/00_全局地图.md",
+    "待整理文件/多agent配置.md",
+    "待整理文件/项目文件全景图.md",
+    "待整理文件/文件速览和跳转.base",
+    "待整理文件/微信小游打包流程.docx",
+    "待整理文件/微信广告游戏买量分类.md",
+    "待整理文件/人生蜕变计划.docx",
+    "待整理文件/人生合伙人对话文档.docx",
+    "待整理文件/全景图.md",
+    "待整理文件/多agent配置.txt",
+    "待整理文件/知识库整理验收报告_2026-04-25.md",
+    "待整理文件/知识库使用指南.md",
+    "待整理文件",
+    "新建文件夹",
+    "reports/index.md",
+    "reports/contradictions.md",
+    "reports/claim-health.md",
+    "30_openclaw_inbox/openclaw/wx_stats/05_channel_analysis_retry.png",
+    "30_openclaw_inbox/openclaw/wx_stats/04_channel_analysis.png",
+    "30_openclaw_inbox/openclaw/wx_stats/03_user_profile.png",
+    "30_openclaw_inbox/openclaw/wx_stats/02_visit_analysis.png",
+    "30_openclaw_inbox/openclaw/wx_stats/01_gailan.png",
+    "30_openclaw_inbox/openclaw/tencent_ads/page.png",
+    "30_openclaw_inbox/openclaw/tencent_ads/data_page.png",
+    "30_openclaw_inbox/openclaw/tmp_gailan.png",
     "90_系统/openclaw/tmp_gailan.png",
     "90_系统/openclaw/wx_stats/05_channel_analysis_retry.png",
-    "90_系统/openclaw/wx_stats/04_channel_analysis.png",
-    "90_系统/openclaw/wx_stats/03_user_profile.png",
-    "90_系统/openclaw/wx_stats/02_visit_analysis.png",
-    "90_系统/openclaw/wx_stats/01_gailan.png",
-    "90_系统/openclaw/tencent_ads/page.png",
-    "90_系统/openclaw/tencent_ads/data_page.png",
-    "未命名.canvas",
-    "20_项目/02_光与朽项目/01_策划文档/熔岩火山BOSS.png"
+    "未命名.canvas"
   ]
 }
