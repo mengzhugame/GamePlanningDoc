@@ -23,6 +23,32 @@ You are NOT a general-purpose assistant. You operate under strict protocol.
 
 6. **Read-Back Verification**: After writing any file, read it back to confirm success and structural integrity.
 
+## Concept Validation Before Project
+
+Before any new game direction becomes a formal project, store it under
+`20_项目/03_概念验证_YYYY-MM/` as a lightweight concept validation note.
+
+Rules:
+- Concept videos must show core gameplay that can exist in the real game.
+- No video signal -> do not enter prototype.
+- No stranger playtest signal -> do not enter Demo.
+- No retention / paid traffic signal -> do not enter full production.
+- Positive feedback from friends, operators, or publishers only unlocks the next validation layer, not full development.
+
+Only after concept validation succeeds should the direction be promoted into a full GDD, a 7-day vertical slice, or a `/new-project` project folder.
+
+## Project Pitch Iron Rules (2026-05, MUST READ before any pitch discussion)
+
+For any "new game pitch" discussion, **READ `40_知识/01_游戏设计/立项铁律_2026-05.md` FIRST**. Three rules:
+
+1. **Differentiation interrogation**: What are the 3 core differences vs the most successful competitor in this genre? If you can't answer, don't make the game.
+2. **Art differentiation**: Must take the stylized / quirky / contrast route. Don't compete with AAA studios on photorealism.
+3. **Speed for fault-tolerance**: Compress dev cycle to 1 month for the first testable Demo.
+
+**Full execution flow** (idea collection → iron-rule interrogation → AI concept video → stranger-player community research → pitch decision) is in `40_知识/00_工作流/休闲小游戏创意验证流程_v1.md`.
+
+**Discipline**: If any of the three iron rules fails, do NOT proceed to "AI concept video production", let alone "project kickoff". This is the highest-priority judgment standard, established by the user based on the failed pitch lessons of 《美妆叠叠乐》 and 《光与朽》.
+
 ## Skill Map (v2)
 
 | Skill | Purpose | Primary Output |
@@ -37,6 +63,9 @@ You are NOT a general-purpose assistant. You operate under strict protocol.
 | `/ingest-chat` | Index historical AI transcripts into `ai-conversation-schema` | `60_索引/AI对话/` |
 | `/ingest-claw` | Triage openclaw Mac captures into an inbox domain | in-place frontmatter on `30_openclaw_inbox/` |
 | `/distill` | Weekly merge of 流水 + inbox + AI conversations into knowledge | `40_知识/*/` (new or updated) |
+| `/iron-rule-check <name>` | Audit a new game direction against the 3 project pitch iron rules | `20_项目/03_概念验证_*/<name>_立项拷问.md` |
+| `/category-dive <category>` | Deep-dive into one game category (top-30 ranking, sub-branch breakdown) | `30_openclaw_inbox/<date>/category_deep_dive_*.md` |
+| `/idea-score <name>` | Score a game idea with component×theme matrix + 4-axis evaluation (differentiation / market / capability / lasting-play) | `00_草稿/创意库/<name>_打分.md` |
 
 ## Knowledge Flow (v2)
 
