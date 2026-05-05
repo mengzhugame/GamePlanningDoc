@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "40_知识/openclaw知识库/knowledge/art_research/weekly_art_trend_archive.md",
+                "file": "90_系统/routines/user-pain-scan-prompt.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "weekly_art_trend_archive"
+              "title": "user-pain-scan-prompt"
             }
           }
         ]
@@ -171,10 +171,10 @@
             "state": {
               "type": "file-properties",
               "state": {
-                "file": "40_知识/openclaw知识库/knowledge/art_research/weekly_art_trend_archive.md"
+                "file": "90_系统/routines/user-pain-scan-prompt.md"
               },
               "icon": "lucide-info",
-              "title": "weekly_art_trend_archive的笔记属性"
+              "title": "user-pain-scan-prompt的笔记属性"
             }
           }
         ],
@@ -195,52 +195,52 @@
       "bases:新建数据库": false
     }
   },
-  "active": "f1071ab6a8b10c33",
+  "active": "0c92779f5525bfcc",
   "lastOpenFiles": [
-    "20_项目/03_概念验证_2026-05/90秒极限防线_视频验证.md",
-    "20_项目/03_概念验证_2026-05/荒废花园复苏经营_视频验证.md",
-    "20_项目/03_概念验证_2026-05/00_概念池.md",
-    "20_项目/03_概念验证_2026-05",
-    "10_流水/2026-05-01.md",
-    "10_流水/2026-04-30.md",
-    "90_系统/openclaw/wx_stats/page_dump.json",
+    "00_草稿/创意库/~$闲游戏策划案生成指南-收纳绿洲.docx",
+    "00_草稿/创意库/~$超休闲小游戏分析报告.xlsx",
+    "00_草稿/创意库/~$50个游戏的题材，例如（人群、食物、交通工具 等等）.xlsx",
+    "00_草稿/创意库/~$个超休闲小游戏创意.docx",
+    "00_草稿/创意库/~$个小游戏创意-20250912.docx",
+    "00_草稿/创意库/~$AI美术关键词和网站.xlsx",
+    "00_草稿/创意库/12种创意玩法.md",
+    "70_计划/2026-05_行动清单.md.tmp.8836.1777941763984",
+    "90_系统/skills/_INDEX.md.tmp.8836.1777941761381",
+    "40_知识/07_游戏拆解库/2026-05_装备全靠转.md",
+    "70_计划/2026-05_行动清单.md.tmp.8836.1777913722844",
+    "90_系统/skills/_INDEX.md.tmp.8836.1777913670077",
+    "90_系统/skills/_INDEX.md.tmp.8836.1777913668264",
+    "90_系统/routines/user-pain-scan-prompt.md",
+    "90_系统/skills/skill-idea-score.md",
+    "90_系统/templates/idea-score-template.md",
+    "90_系统/schemas/idea-score-schema.md",
+    "40_知识/07_游戏拆解库/2026-05_我的小家.md",
+    "40_知识/07_游戏拆解库/2026-05_Lilys_Garden.md",
+    "40_知识/07_游戏拆解库/2026-05_Merge_Gardens.md",
+    "10_流水/2026-05-05.md",
+    "40_知识/07_游戏拆解库/2026-05_保卫向日葵.md",
+    "40_知识/07_游戏拆解库/2026-05_打个螺丝.md",
+    "40_知识/07_游戏拆解库/2026-05_向僵尸开炮.md",
+    "40_知识/07_游戏拆解库/2026-05_噩梦守护战.md",
+    "40_知识/01_游戏设计/立项铁律_2026-05.md",
+    "40_知识/07_游戏拆解库/2026-02_羊了个羊.md",
+    "40_知识/07_游戏拆解库/_INDEX.md",
+    "40_知识/07_游戏拆解库/README.md",
+    "90_系统/templates/game-teardown-template.md",
+    "90_系统/schemas/game-teardown-schema.md",
+    "40_知识/01_游戏设计/独立游戏差异化策略.md",
+    "70_计划/2026-05_行动清单.md",
+    "90_系统/skills/skill-start.md",
+    "90_系统/skills/_INDEX.md",
+    "知识库使用指南.md",
+    "90_系统/openclaw/tmp_gailan.png",
     "90_系统/openclaw/wx_stats/05_channel_analysis_retry.png",
     "90_系统/openclaw/wx_stats/04_channel_analysis.png",
-    "90_系统/openclaw/wx_stats/04_channel_analysis.json",
     "90_系统/openclaw/wx_stats/03_user_profile.png",
     "90_系统/openclaw/wx_stats/02_visit_analysis.png",
     "90_系统/openclaw/wx_stats/01_gailan.png",
-    "90_系统/openclaw/wx_stats",
-    "90_系统/openclaw/tmp_gailan.png",
-    "90_系统/openclaw/tencent_ads/page_text.json",
     "90_系统/openclaw/tencent_ads/page.png",
-    "90_系统/openclaw/tencent_ads/data_page_text.json",
     "90_系统/openclaw/tencent_ads/data_page.png",
-    "90_系统/openclaw/tencent_ads",
-    "90_系统/openclaw/memory/2026-04-27.md",
-    "90_系统/openclaw/knowledge/user_model_daily_archive/2026-04-27.md",
-    "90_系统/openclaw/knowledge/user_model_daily_archive",
-    "90_系统/openclaw/knowledge/user_model.md",
-    "90_系统/openclaw/knowledge/daily_insights_archive.md",
-    "90_系统/openclaw/knowledge/_research/everplay_ar2024.pdf",
-    "90_系统/openclaw/knowledge/_research/devolver_fy23.pdf",
-    "40_知识/openclaw知识库/knowledge/game_breakdowns/thronefall.md",
-    "40_知识/06_发行与运营/微信小游戏运营教训.md",
-    "40_知识/06_发行与运营/个人IP运营方法论.md",
-    "40_知识/06_发行与运营/发行商沟通经验.md",
-    "40_知识/06_发行与运营/独立游戏商业化路径.md",
-    "40_知识/06_发行与运营/20260317_游戏行业动态.md",
-    "40_知识/03_美术与表现/AI美术工作流.md",
-    "40_知识/01_游戏设计/README.md",
-    "40_知识/01_游戏设计/爽感设计系统.md",
-    "40_知识/01_游戏设计/美妆叠叠乐-女性向休闲游戏策划经验.md",
-    "40_知识/01_游戏设计/光与朽-战斗数值设计经验.md",
-    "40_知识/01_游戏设计/光与朽-玩家反馈与版本迭代方法论.md",
-    "40_知识/01_游戏设计/光与朽-立项设计决策.md",
-    "40_知识/01_游戏设计/独立游戏创业策略-TA视角.md",
-    "40_知识/01_游戏设计/独立游戏差异化策略.md",
-    "40_知识/01_游戏设计/超休闲游戏设计方法论.md",
-    "90_系统/人生维度/成长与认知.md",
     "未命名.canvas",
     "20_项目/02_光与朽项目/01_策划文档/熔岩火山BOSS.png"
   ]

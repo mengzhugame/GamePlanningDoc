@@ -24,6 +24,7 @@
 | `20_项目/03_概念验证_YYYY-MM/` | 立项前概念验证：真实玩法视频、数据记录、是否进入切片 | 新游戏方向未验证前 |
 | `30_openclaw_inbox/` | Mac 端 openclaw 抓的原料（inbox） | 跑 `/ingest-claw` 时 |
 | `40_知识/0N_主题/` | 蒸馏后的**永久知识**（权威） | 找方法论 / 复用经验 |
+| `40_知识/07_游戏拆解库/` | 具体游戏的结构化拆解（案例底座，按 game-teardown-schema） | 找特定游戏机制参考 / 写新拆解前先 grep `_INDEX.md` |
 | `40_知识/代码模板库/` | 生产级代码模板 | 写代码时 |
 | `AI对话记录/` | 从各平台导出的原始 AI 对话 txt | 跑 `/ingest-chat` 时 |
 | `AI角色设定/` | 13+ 角色的提示词库（策划/主程/美术 等） | 切换工作角色时 |
@@ -32,6 +33,8 @@
 | `90_系统/人生维度/` | 用户画像的分维度扩展（事业、关系、身体等） | 讨论对应人生主题时 |
 | `90_系统/schemas/` | 所有 frontmatter 规范 | 新建文件前读对应 schema |
 | `90_系统/skills/` | 所有 skill 定义 | 用户调 `/xxx` 时读对应 skill |
+| `90_系统/skills/_INDEX.md` | **Skill 速查表 + Auto-trigger Matrix** | 不知道何时用哪个 skill 时 / `/start` 自动读 |
+| `70_计划/<YYYY-MM>_行动清单.md` | 当月里程碑跟踪 | `/start` 早会自动读并 surface 今日对应项 |
 
 ---
 
@@ -54,7 +57,12 @@
 | `/ingest-chat` | `90_系统/skills/skill-ingest-chat.md` |
 | `/ingest-claw` | `90_系统/skills/skill-ingest-claw.md` |
 | `/distill` | `90_系统/skills/skill-distill.md` |
+| `/iron-rule-check <方向名>` | `90_系统/skills/skill-iron-rule-check.md`(立项铁律拷问)|
+| `/category-dive <品类名>` | `90_系统/skills/skill-category-dive.md`(品类深度调研) |
+| `/idea-score <创意名>` | `90_系统/skills/skill-idea-score.md`(创意打分卡 - 组件×题材+4维打分) |
 | `/knowledge` `/project` `/research` `/review` `/archive` `/start` | 对应同名 `skill-xxx.md` |
+
+> **不知道何时该触发哪个 skill？** 看 `90_系统/skills/_INDEX.md`——按使用场景分类的速查表 + Auto-trigger Detection Matrix（`/start` 早会会自动按矩阵扫描并提示）。
 
 ---
 
@@ -82,6 +90,20 @@
 - 朋友、运营、发行说“新颖 / 不错 / 有潜力”，只解锁下一层验证，不解锁完整开发
 
 验证通过后，才能升级为完整策划案、7 天垂直切片或 `/new-project` 项目目录。
+
+---
+
+## 立项铁律（2026-05 起强制执行 · 必读）
+
+任何"新游戏立项"相关讨论，**必须先读 `40_知识/01_游戏设计/立项铁律_2026-05.md`**。三条铁律：
+
+1. **差异化拷问**：和市面上最火的同类，最核心的 3 个不同点是什么？答不上来就不做。
+2. **美术差异化**：必须走风格化 / 猎奇 / 反差路线，避免和大厂卷画质。
+3. **速度换容错**：开发周期压缩到 1 个月内出 Demo 测试。
+
+**完整执行流程**（创意收集 → 铁律拷问 → AI 概念视频 → 陌生玩家社群调研 → 立项决策）见 `40_知识/00_工作流/休闲小游戏创意验证流程_v1.md`。
+
+**纪律**：三条铁律任何一条没过都不能进入"AI 概念视频制作"阶段，更不能进入"项目立项"阶段。这是用户基于《美妆叠叠乐》和《光与朽》两次立项失败教训确立的最高优先级判断标准。
 
 ---
 
