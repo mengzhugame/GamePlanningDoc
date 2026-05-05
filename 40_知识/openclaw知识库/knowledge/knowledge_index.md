@@ -1,6 +1,6 @@
 # 知识库目录索引
 
-**最后更新**: 2026-04-27
+**最后更新**: 2026-05-01
 **用途**: 快速查找已积累的知识,支持智能问答
 
 ---
@@ -27,6 +27,8 @@
 - **game_breakdowns/tower_dominion.md** - 《Tower Dominion》拆解（英雄化塔防、地形造卡口、阵营差异、Doctrine构筑）
 - **game_breakdowns/lucky_defense.md** - 《Lucky Defense》拆解（合作塔防、随机召唤、三合一升阶、盘面回收）
 - **game_breakdowns/thronefall.md** - 《Thronefall》拆解（昼夜守城、固定点位取舍、英雄参战、强广告可读性）
+- **game_breakdowns/mob_control.md** - 《Mob Control》拆解（倍增门人海爽感、超休闲→混合休闲进化、广告替代货币）
+- **game_breakdowns/all_in_hole.md** - 《All in Hole》拆解（吞噬成长解压、体积断点谜题、轻Meta长线化）
 
 ### 代码模板
 - **code_templates/** - Unity代码模板库

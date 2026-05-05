@@ -4422,3 +4422,914 @@ UI 图标经常主体对了，但边缘脏、符号太糊。
 - Reddit / r/StableDiffusion：`inpainting only on masked area in ComfyUI`
 - YouTube：`EASY Inpainting in ComfyUI with SAM`、`Inpainting only on masked area, fast outpainting, and seamless blending`
 - Bilibili：`Comfy UI 基础教程(七)——图生图高级蒙版重绘`、`ComfyUI系列教程【4】使用蒙版进行图像修复`
+
+# 📚 ComfyUI 高级节点精讲学习笔记 (2026-04-29)
+
+## 🎯 今日攻克节点：逻辑节点与条件控制（Primitive / Switch / Math Logic / Lazy Evaluation）
+
+### 一、为什么今天必须学这刀
+主人，前面的 ControlNet、IP-Adapter、局部重绘、放大矩阵，解决的是“画得准不准”。
+但**逻辑节点与条件控制**解决的是另一件更工业化的事：
+
+**同一套工作流，能不能根据输入条件自己选路、自己跳过没必要的分支、自己算参数。**
+
+不会这套，你的 ComfyUI 工作流再强，也只是“手工拼图”。
+会了以后，工作流才开始像一条真正的生产线：
+- 小图自动走像素放大
+- 大图自动跳过放大
+- 横图和竖图自动选不同分辨率模板
+- 只在需要时才执行高成本分支
+- 批处理时根据资产类型走不同导出链
+
+对《光与朽》这种需要同时产出 **UI 图标、怪物半身、宣传图、买量图、透明底资产** 的项目，这一步不是锦上添花，是效率分水岭。
+
+---
+
+### 二、核心认知：ComfyUI 里有两层“控制”
+
+很多人把“节点连线”理解成纯数据流，这是半懂不懂。
+真正要分清的是两层：
+
+#### 1）数据控制（Data Routing）
+决定**哪个值被传给哪个节点**。
+常见工具：
+- Primitive
+- Reroute
+- Switch
+- Context/Pipe 类节点
+- 任意类型传递节点（Any / Pass Through）
+
+#### 2）执行控制（Execution Control）
+决定**某个分支到底要不要真的执行**。
+常见工具：
+- Lazy Evaluation（官方执行模型）
+- 条件分支节点（If / Compare / Boolean Switch）
+- Loop / While / For 类节点
+- Bypass / Mute / Branch Select
+
+一句话：
+**“线连上了”不等于“分支真的会被省掉”。**
+
+这也是很多人工作流看着聪明，实际照样又慢又炸显存的根本原因。
+
+---
+
+### 三、官方层的底层逻辑：Lazy Evaluation 才是条件控制的根
+
+根据 ComfyUI 官方 `Lazy Evaluation` 文档，默认情况下，节点的 `required` 和 `optional` 输入会先被求值，然后节点才执行。
+
+这意味着：
+- 你即便最后只用 A 分支
+- 只要 B 分支还是普通必算输入
+- ComfyUI 依然可能先把 B 分支也算出来
+
+所以官方给出的正解不是“多画几根线”，而是：
+
+#### 让输入变成 lazy input
+做法有两步：
+1. 在 `INPUT_TYPES` 里把输入标记为 `lazy: True`
+2. 写 `check_lazy_status()`，按当前条件返回“到底还需要哪些输入”
+
+官方示例很典型：
+- 两张图按 mask 混合
+- 如果 mask 全是 0，则根本不需要评估第二张图
+- 如果 mask 全是 1，则根本不需要评估第一张图
+
+这个思路非常关键。
+
+#### 结论别记岔了
+- **Switch 节点只是表层形式**
+- **Lazy Evaluation 才是“没被选中的分支不执行”的底层保障**
+
+所以以后你看任何“条件工作流”，先问自己：
+**它只是切了输出，还是连执行都真的省了？**
+
+---
+
+### 四、最实用的四类逻辑节点
+
+## 1）Primitive：统一参数入口，不再到处手改
+Primitive 不是花哨节点，它是整个动态工作流的参数总线。
+
+作用：
+- 把一个数值、布尔值、文本或类型化输入集中管理
+- 一处修改，多处联动
+- 给后续 Compare / Math / Switch 提供稳定输入
+
+最值钱的用法不是“少填一次数”，而是：
+- 同一个 seed 同时喂两个采样器做 A/B 对照
+- 同一组宽高/步数/denoise 控多个分支
+- 用一个布尔总开关控制某整段流程
+
+#### 典型连法
+```text
+Primitive(目标长边) → Math(算倍率) → Resize / Upscale
+Primitive(是否导出透明底) → Boolean Switch → 保存链
+Primitive(资产类型) → Compare → Branch Select
+```
+
+#### 实战建议
+- 所有会频繁调的参数，先别直接写死在节点里
+- 先抽成 Primitive，再下发
+- 尤其是：长边、批量数、denoise、CFG、导出开关、是否抠图
+
+这一步会让工作流从“临时拼装”变成“可维护”。
+
+---
+
+## 2）Compare / Boolean / If-Then-Else：让工作流开始“判断”
+这是最基础的条件门。
+
+常见判断：
+- 宽 > 高？
+- 长边 > 1024？
+- 资产类型 == UI_ICON？
+- 是否启用透明底？
+- 当前倍率 > 2x？
+
+输出通常是：
+- True / False
+- 0 / 1
+- 选择 A / B 路径
+
+#### 典型用途
+1. **横竖图分流**
+   - 横图走 1536x864
+   - 竖图走 864x1536
+
+2. **小图才放大**
+   - 小于阈值才进 Ultimate/ESRGAN 分支
+   - 大图直接存图，避免无意义耗时
+
+3. **特定资产才抠图**
+   - 怪物立绘、道具图标走透明底
+   - 宣传图跳过 RMBG
+
+#### 参数原则
+- 判断阈值一定要**写死成规则**，别凭感觉临时改
+- 最常见阈值：
+  - 长边阈值：768 / 1024 / 1536
+  - UI 图标目标边：512 / 768
+  - 透明底导出：布尔开关
+
+---
+
+## 3）Math / Resolution Logic：自动算尺寸，比手填靠谱
+这才是今天最能直接落地的一刀。
+
+路线图里提到的经典例子：
+**“根据输入图片尺寸自动计算最佳放大倍率”。**
+
+这件事用纯手工做很蠢，因为：
+- 原图尺寸每次不同
+- 有些图只该放 1.5x
+- 有些图该 2x
+- 有些图超过目标后应该直接跳过
+
+#### 最实用的自动尺寸公式
+假设你希望输出目标长边为 `T`，原图长边为 `M`：
+
+```text
+scale = T / M
+```
+
+然后再加三层规则：
+1. 若 `scale <= 1.0` → 不放大 / 直接导出
+2. 若 `1.0 < scale <= 2.0` → 走单次 upscale
+3. 若 `scale > 2.0` → 先像素放大到 2x，再二段细化，或拆成 latent + pixel 两段
+
+#### 生产线里必须再补两条硬规则
+- 分辨率尽量对齐模型习惯倍数（常见 8 / 64）
+- 放大倍率要设上限，防止一张小破图被放成炸显存巨物
+
+#### 我的建议上限
+- UI 图标：目标边 512 或 768
+- 宣传图：长边 1536 或 2048
+- 小素材自动上限：最多 2x 或 2.5x
+- 再大的提升交给二段工作流，不要一把梭
+
+---
+
+## 4）Branch / Loop / Flow Control：复杂工作流的总调度
+社区节点包已经把这块卷得很猛。
+
+从 GitHub 与社区资料看，当前常见路线是：
+- **ControlFlowUtils**：高级循环、条件分支、逻辑运算、流程控制
+- **ComfyUI-Logic**：较早期的条件渲染与比较逻辑扩展
+- **rgthree / 分支控制思路**：更偏实际工作流管理、只运行单分支、参数整洁化
+
+#### 这里有个现实判断
+官方早期并没有一个“默认就很好用的条件分支节点体系”，社区长期都在补这一刀。
+这也是 GitHub 里会有人专门提 “Conditional Branching Nodes” 需求的原因。
+
+#### Loop 的价值
+Loop 不只是炫技，它适合：
+- 批量尝试多个 prompt 变量
+- 多倍率试跑
+- 多 seed 扫描
+- 逐个素材自动处理
+
+但别一上来就迷恋 Loop。
+对你当前阶段，更值钱的是：
+**先把判断 + 切支 + 自动算参打通。**
+Loop 是第二阶段放大器，不是第一优先级。
+
+---
+
+### 五、真正落地的标准工作流：自动判图尺寸并选最优放大链
+
+下面这套，是最适合你当前项目立刻吸收的动态工作流骨架。
+
+## 工作流目标
+输入任意一张图后，自动判断：
+- 是否需要放大
+- 放多少
+- 走 latent 细化还是像素放大
+- 最后是否接透明底导出
+
+## 标准思路
+```text
+Load Image
+ → 读取宽高
+ → Math：取 max(width, height)
+ → Primitive：目标长边 TargetMax
+ → Math：scale = TargetMax / maxSide
+ → Compare：scale <= 1 ?
+    ├─ True  → 直出 / 可选轻修
+    └─ False → Compare：scale <= 2 ?
+              ├─ True  → Pixel Upscale / Ultimate SD Upscale 轻度细化
+              └─ False → 先 2x 像素放大，再二段重绘 / 分步放大
+ → Compare：是否透明底资产？
+    ├─ True  → RMBG / LayerDiffuse / Alpha 导出
+    └─ False → 普通保存
+```
+
+## 关键参数建议
+### A. 长边目标
+- UI / 技能图标：512~768
+- 怪物卡面 / 立绘：1024~1536
+- 宣传图 / 商店图：1536~2048
+
+### B. 放大倍率阈值
+- `<= 1.0`：不放大
+- `1.0 ~ 2.0`：单段放大
+- `> 2.0`：二段放大，不要一次拉爆
+
+### C. 二段重绘 denoise
+- 轻修：`0.15 ~ 0.25`
+- 明显补细节：`0.25 ~ 0.35`
+- 超过 `0.4` 就开始有明显跑形风险
+
+### D. 分辨率对齐
+- 最终宽高尽量对齐 8 或 64 的倍数
+- 尤其是接 SDXL / upscale / tile 类链路时更稳
+
+---
+
+### 六、给主人最值钱的应用方式：怎么服务《光与朽》
+
+#### 1）怪物立绘与图鉴头像统一出货
+问题：
+- 草图来源尺寸不统一
+- 有的需要透明底，有的不需要
+- 人工每张调尺寸很蠢
+
+解决：
+- 自动读尺寸
+- 小图走放大，大图跳过
+- 立绘走透明底分支
+- 宣传图走普通导出
+
+结果：
+同一个工作流就能同时处理图鉴头像、怪物卡面、宣传切图。
+
+#### 2）UI 图标生产线
+问题：
+- 技能图标经常要反复出多版
+- 有些图太小直接糊
+- 有些已经够大，再放只会烂
+
+解决：
+- 目标边固定 512/768
+- 自动判断是否放大
+- 自动抠透明底
+- 同一 Primitive 控 seed / denoise / 导出命名
+
+结果：
+以后做《光与朽》的技能图标，不用每版重新搭线。
+
+#### 3）买量素材与商店图
+问题：
+- 横图、竖图、封面图尺寸需求不同
+- 不同平台需要不同长宽比
+
+解决：
+- Compare 宽高比
+- 横图走一套分辨率模板
+- 竖图走另一套模板
+- 必要时再接文案区安全边距模板
+
+结果：
+你做 Steam、微信、短视频封面时，不会再一张张人工改尺寸。
+
+---
+
+### 七、今天这刀最容易踩的坑
+
+#### 1）以为“接了 Switch 就等于省算力”
+错。
+如果底层没 lazy / 没真正执行控制，分支可能还是会被提前求值。
+
+#### 2）把逻辑节点当成炫技插件
+错。
+逻辑节点真正价值不是花里胡哨，而是：
+- 节省重复操作
+- 减少错参
+- 降低炸显存概率
+- 提升批量处理稳定性
+
+#### 3）一开始就上超复杂 Loop
+错。
+先把：
+- 参数集中
+- 条件判断
+- 尺寸自动计算
+- 分支导出
+这四件事搞稳。
+
+#### 4）忘记倍率上限
+这是最容易炸的一刀。
+小图自动放大如果不封顶，很快就会把显存和时间一起拖死。
+
+#### 5）规则不写成固定阈值
+今天临时改一下，明天临时改一下，最后没人知道工作流到底按什么标准在跑。
+
+---
+
+### 八、我给你的推荐学习顺序
+
+#### 第一阶段（现在就该会）
+1. Primitive 统一参数
+2. Compare / Boolean 判断
+3. Switch / Branch 输出选路
+4. Math 自动算倍率和目标宽高
+
+#### 第二阶段（熟了再上）
+5. 条件抠图 / 条件导出
+6. 横竖图模板自动切换
+7. 批处理规则化
+
+#### 第三阶段（再升级）
+8. Loop / For / While
+9. 多资产类型总控管线
+10. 视频帧批处理条件路由
+
+这顺序最稳。别跳级，不然就是拿电锯修指甲。
+
+---
+
+### 九、一句话总结
+
+**逻辑节点与条件控制的本质，不是让 ComfyUI 更复杂，而是让它开始“自己做决定”。**
+
+当你的工作流能根据输入尺寸、资产类型、导出目标自动选路、自动算参、自动跳过无效分支时，它才真正配叫“AI 美术管线”，而不是一坨能跑的节点截图。
+
+---
+
+## 📌 今日关键记忆点
+1. ComfyUI 的条件控制要区分 **数据选路** 和 **执行选路**。
+2. 真正能省计算的关键不是表面 Switch，而是 **Lazy Evaluation**。
+3. Primitive 是参数总线，Math/Compare 是判断大脑，Branch/Switch 是流量调度器。
+4. 最值得立刻落地的不是 Loop，而是 **自动算尺寸 + 自动选放大链 + 自动导出分支**。
+5. 《光与朽》最该先做的是：
+   - 图标自动放大与透明底
+   - 怪物卡面尺寸自适配
+   - 横竖宣传图分辨率自动切换
+
+## 参考来源
+- ComfyUI 官方文档：`Lazy Evaluation - ComfyUI`
+- GitHub 议题：`Conditional Branching Nodes`（ComfyUI 社区长期需求）
+- GitHub / 社区线索：`VykosX/ControlFlowUtils`、`theUpsider/ComfyUI-Logic`、`rgthree/rgthree-comfy`
+- Reddit：关于“未使用分支为何仍会运行”的讨论与执行模型解释
+- YouTube：`ComfyUI 003 - Execution Flow Guide: Make a clean workflow`、`Workflow Looping in ComfyUI! All New Automation with For and While Loops!`、`How to run only one branch of a comfyUI workflow (in 60 seconds)`
+- Bilibili：`小白也能听懂的ComfyUI工作流搭建教程！节点连线整理技巧+复杂工作流解构`、`Comfyui工作流从零基础到精通（2026新手入门实用版comfyui教程）`
+
+## 2026-04-30｜资深阶段①｜AnimateDiff 与 SVD（Stable Video Diffusion）动效视频管线
+
+### 一、为什么它是当前路线上的下一个关键节点
+在完成“逻辑节点与条件控制”后，下一个顺序节点就是把静态资产推进到可投放、可测试、可复用的动态素材层。对《光与朽》与下一阶段 AI 视频反向立项来说，这不是“会做动画”这么简单，而是把单张立绘、怪物设定图、场景概念图，升级成可用于抖音/小红书/B站测试的短动效素材生产线。
+
+### 二、核心定位：AnimateDiff 和 SVD 不是一个东西
+1. **AnimateDiff**
+   - 本质：在标准 SD/SDXL 采样链上注入 **motion model（运动模块）**，让一批 latent 帧在采样时带上时序运动一致性。
+   - 强项：
+     - 更适合 **txt2video / img2video / vid2vid 风格化**。
+     - 可叠 ControlNet、IPAdapter、Motion LoRA、Prompt Travel。
+     - 更像“可编排的视频生成框架”。
+   - 弱点：
+     - 参数多，容易炸显存。
+     - 长序列和高分辨率容易闪烁、漂移。
+
+2. **SVD / SVD-XT（Stable Video Diffusion）**
+   - 本质：Stability 官方的 **image-to-video 专用视频模型**。
+   - 强项：
+     - 上手简单，尤其适合“单张图做 14 帧 / 25 帧短动效”。
+     - 非常适合把角色卡面、概念图、封面图变成轻微呼吸/镜头推拉/粒子晃动素材。
+   - 弱点：
+     - 可控性弱于 AnimateDiff。
+     - 本质更偏“让图动起来”，不适合复杂叙事或长镜头调度。
+
+**结论很硬**：
+- 想做“静态图轻动效广告素材”——先上 **SVD**。
+- 想做“可控循环动画、角色待机、镜头运动、视频重绘”——主力是 **AnimateDiff**。
+- 最实战的工业流不是二选一，而是：**先用 SDXL/图生图出关键帧 → SVD 快速试钩子 → 表现好的方向再转 AnimateDiff 精修。**
+
+### 三、官方与仓库确认到的关键事实
+#### 1）ComfyUI 官方 Video Examples
+官方页面明确给出两套 SVD 检查点：
+- `svd.safetensors`：14 帧
+- `svd_xt.safetensors`：25 帧
+并说明最基础工作流就是 **给一个 init image 直接做 image-to-video**，或者 **先用 SDXL 出图，再送进 SVD 做 txt-to-image-to-video**。
+
+官方解释的关键参数：
+- `video_frames`：输出帧数
+- `motion_bucket_id`：数值越高，运动幅度越大
+- `fps`：越高越不顿，但同样帧数下视频时长更短
+- `augmentation_level`：给初始图加多少噪声；越高越不像原图，也通常意味着运动更大
+- `VideoLinearCFGGuidance`：让离首帧越远的帧使用更高 CFG，提升后段帧稳定度与服从度
+
+#### 2）AnimateDiff Evolved 仓库确认到的关键结构
+`Kosinkadink/ComfyUI-AnimateDiff-Evolved` 是当前 ComfyUI 里最成熟、工程化程度最高的 AnimateDiff 节点体系之一。仓库 README 与文档确认：
+- 安装 motion modules 后，可与几乎所有 vanilla/custom KSampler 配合。
+- 深度整合：
+  - ControlNet
+  - SparseCtrl
+  - IPAdapter
+  - Prompt Scheduling
+  - Motion LoRA
+  - Context Options / View Options
+  - FreeNoise / FreeInit
+- 适合从基础 txt2vid 扩展到长序列、循环动画、vid2vid 和条件控制。
+
+#### 3）VideoHelperSuite 在视频管线里的角色
+`ComfyUI-VideoHelperSuite` 不是生成模型，但它是视频工作流的运输层：
+- `Load Video`：把视频拆成帧，支持改帧率、截取区间、限制批量帧数
+- `Video Combine`：把帧重新编码成视频
+- `frame_rate`：官方说明 **AnimateDiff 通常建议保持 8fps**，或与输入视频 force_rate 对齐
+- `pingpong`：可直接生成首尾往返循环，适合待机、UI 呼吸、循环特效
+
+### 四、最小可用工作流 ①：SVD 图片转视频
+适合：
+- 角色立绘轻呼吸
+- 怪物卡面抖动
+- 场景概念图加镜头推进
+- 买量首钩子素材快速 A/B
+
+#### 基础连线逻辑
+1. `Load Image` / `Load Image Batch`
+2. （可选）`Image Resize` / 裁到目标比例
+3. `Load Checkpoint`（SVD 或 SVD-XT 模型）
+4. `VAE Encode`（如果工作流版本需要）
+5. `SVD image-to-video sampler / 官方 video workflow`
+6. `VideoLinearCFGGuidance`
+7. `VAE Decode`
+8. `Video Combine`
+
+#### 推荐起手参数
+- **帧数**：
+  - 测钩子：14 帧先跑
+  - 稍完整镜头：25 帧
+- **fps**：
+  - 6~8：动势更明显，适合广告感
+  - 8~12：更顺，但更像“轻动图”
+- **motion_bucket_id**：
+  - 低值：轻微呼吸、漂浮、镜头缓推
+  - 中值：角色衣摆/粒子/镜头位移
+  - 高值：容易形变失控，先别贪
+- **augmentation_level**：
+  - 低：保形优先
+  - 中：需要更明显运动时再加
+  - 高：最容易把角色脸和边缘搞坏
+
+#### 实战判断规则
+- 如果你要保住角色脸、UI 图标、武器轮廓：**优先低 augmentation + 中低 motion_bucket**。
+- 如果你要做“封面图突然活了”的吸睛感：**先拉 motion_bucket，再微调 augmentation**。
+- 运动不够，不要第一反应暴力提噪；先换构图、给更有前后景层次的输入图，收益更大。
+
+### 五、最小可用工作流 ②：AnimateDiff 角色待机 / 循环短动画
+适合：
+- 怪物待机
+- Boss 预警动势
+- 技能前摇概念动画
+- 宣传图局部生命感
+
+#### 基础连线逻辑（Gen2 推荐）
+1. `Load Checkpoint`（SD1.5 或 SDXL，对应 motion model 必须匹配）
+2. `CLIP Text Encode (Prompt / Negative)`
+3. `Empty Latent Image` 或 `Load Image -> VAE Encode`（决定 txt2vid 还是 img2vid）
+4. `Load AnimateDiff Model`
+5. `Apply AnimateDiff Model (Adv.)`
+6. `Context Options`（先从 `Standard Static` 起）
+7. `Sample Settings`（需要时开 FreeNoise / FreeInit）
+8. `Use Evolved Sampling`
+9. `KSampler`
+10. `VAE Decode`
+11. `Video Combine`
+
+#### 关键节点理解
+- **Load AnimateDiff Model**：加载 motion module
+- **Apply AnimateDiff Model (Adv.)**：把运动模块注入到采样流程，可控制生效区间
+- **Context Options**：长视频最重要的稳定器；按时间窗分段采样，绕过 motion model 的甜点帧数限制
+- **View Options**：只限制 motion model 看到的帧窗，速度更快但不减主采样显存
+- **Sample Settings**：扩展噪声与迭代策略
+- **Video Combine**：真正出 mp4/webm 的收尾节点
+
+### 六、AnimateDiff 的关键参数与判断逻辑
+#### 1）motion model 匹配
+- SD1.5 motion model 只能配 SD1.5 系底模
+- SDXL motion model 只能配 SDXL 系底模
+- 错配直接浪费时间，结果会脏、飘或压根跑不通
+
+#### 2）beta_schedule
+仓库明确写了：不同运动模型推荐不同 beta_schedule，**优先用 `autoselect`**。
+这条很值钱，因为很多炸图不是 prompt 烂，是 schedule 没对上。
+
+#### 3）context_length
+- AnimateDiff 常见甜点是 **16 帧上下**；HotshotXL 常见甜点 **8 帧**。
+- 超过甜点后，不要硬顶全长一起算，改用 `Context Options`。
+- 起手建议：
+  - 16 帧短待机：直接 16
+  - 32/48 帧：context_length 先 16，overlap 4 左右起步
+
+#### 4）context_overlap
+- 作用：相邻时间窗的共用帧数量
+- 太低：窗与窗接缝明显
+- 太高：更稳，但更慢更吃算力
+- 实战起手：**4 是很稳的入门值**
+
+#### 5）scale_multival / effect_multival
+- `scale_multival`：控制运动幅度
+- `effect_multival`：控制运动模块对采样过程的影响强度
+- 真正强的玩法不是写死一个值，而是通过 keyframe / multival：
+  - 前半段轻动
+  - 中段抬运动
+  - 结尾回稳
+这对“蓄力—爆发—收尾”的技能演示特别有用。
+
+#### 6）FreeNoise
+仓库说明：
+- 能让长序列在 context/window 重复时更稳定
+- 比 repeated_context 更不容易出现明显重复感
+**结论**：做 32 帧以上动画时，优先试 `FreeNoise`，比傻堆步数更聪明。
+
+#### 7）FreeInit
+仓库说明：
+- 通过多次完整采样，把已有 latent 的低频信息和新噪声高频信息混合
+- **2 次 iteration 就是 2 倍时间成本**
+**结论**：
+- 它是质量救火器，不是默认常开项
+- 当角色结构老飘、动作前后不接时再开，不要一上来就把时间炸掉
+
+### 七、SVD vs AnimateDiff：怎么选
+#### 选 SVD 的情况
+- 你已经有一张不错的立绘/场景图
+- 目标是快速做 1~3 秒动态封面
+- 想验证“这个画面动起来是否更吸引点击”
+- 不需要复杂镜头逻辑
+
+#### 选 AnimateDiff 的情况
+- 你要更强控制感
+- 你需要循环待机、镜头运动、角色动作节奏
+- 你需要接 ControlNet / IPAdapter / Prompt Travel
+- 你准备把这个流程沉淀成长期视频素材生产线
+
+#### 组合打法（最实用）
+1. 先用静态图出 3 个视觉方向
+2. 每个方向用 SVD 各做 14 帧测试版
+3. 看哪个最像“会让陌生人停住的广告封面”
+4. 只有赢家，才进入 AnimateDiff 精修和批量化
+
+### 八、对《光与朽》最值得先落地的三个小工作流
+#### 工作流 A：Boss 立绘呼吸 + 粒子漂浮
+- 输入：Boss 概念图 / 宣传图
+- 路线：SVD 14 帧
+- 参数策略：低 augmentation，中低 motion_bucket
+- 作用：做 Steam 图、B站封面、短视频开头第一秒动效
+
+#### 工作流 B：激光塔核心镜头循环
+- 输入：塔、激光、敌人三层拆开的合成图
+- 路线：AnimateDiff + Looped/或 pingpong 输出
+- 作用：做“激光折射翻盘”的核心爽点循环素材
+- 重点：别先追求长剧情，先做 1.5~2 秒纯爽点循环
+
+#### 工作流 C：实机录屏转风格化买量素材
+- 输入：Unity 实机录屏
+- 路线：VideoHelperSuite 读视频 → 抽帧 → AnimateDiff/ControlNet 约束 → Video Combine
+- 作用：把真实玩法包装成更抓眼的风格化广告
+- 注意：先解决帧一致性，再谈画风；闪烁视频再酷也是垃圾
+
+### 九、今日最该记住的坑
+1. **先保形，再加运动。** 一上来追大幅运动，最先坏的是脸、武器边缘和 UI 可读性。
+2. **长视频不是多堆帧，是拆 context。** 不懂 context，视频稳定性永远上不去。
+3. **FreeInit 很贵。** 它是修问题的，不是默认配置。
+4. **SVD 是钩子测试器，不是万金油导演。**
+5. **AnimateDiff 真正的强点是可组合。** ControlNet、IPAdapter、Prompt Travel、VideoHelperSuite 一接上，才像生产线。
+
+### 十、明日/下次继续深化的方向
+如果沿路线继续推进，下一步应细分为：
+1. AnimateDiff 的 **循环动画（loop）与首尾帧闭环技巧**
+2. Video-to-Video 的 **时序一致性控制**
+3. 用 ControlNet / SparseCtrl 约束实机录屏转绘
+
+### 参考来源
+- ComfyUI 官方示例：`https://comfyanonymous.github.io/ComfyUI_examples/video/`
+- GitHub：`https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved`
+- GitHub 文档：`documentation/nodes/README.md`、`documentation/samples/README.md`
+- GitHub：`https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite`
+- GitHub：`https://github.com/kijai/ComfyUI-SVD`（仓库 README 已注明官方 Video Examples 已覆盖）
+- Reddit：`[GUIDE] ComfyUI AnimateDiff Guide/Workflows Including Prompt Scheduling`
+- Reddit：`9 Animatediff Comfy workflows that will steal your weekend...`
+- Bilibili：`【保姆级分享2】ComfyUI+SVD图片生成视频工作流快速上手`
+- Bilibili：`Comfyui实用工作流教程11期——Animatediff首尾帧丝滑可控动画`
+
+## 2026-05-01｜资深阶段②｜Video-to-Video 时序一致性控制（AnimateDiff + ControlNet / SparseCtrl）
+
+### 一、为什么它是当前路线上的下一个未掌握节点
+路线图里资深阶段①已经打通了 **SVD / AnimateDiff 的静态图动效化**，下一步按顺序就该攻克：**Video-to-Video 转绘时，怎么让视频“像同一个镜头”而不是每帧都像不同作品。**
+
+这一步不解决，AI 视频只能当炫技；解决了，才配进《光与朽》买量、B站封面动效、抖音/XHS 测试素材管线。
+
+---
+
+### 二、先把核心结论说死
+- **Video-to-Video 的第一目标不是更炫，而是更稳。**
+- **时序一致性 = 结构一致 + 运动连续 + 纹理别乱跳。**
+- 在 ComfyUI 里，最稳的骨架不是“单靠 AnimateDiff 硬抗”，而是：
+  **输入视频帧 + AnimateDiff 运动先验 + ControlNet/SparseCtrl 结构约束 + 低到中等 denoise。**
+- 真正能救命的不是多堆节点，而是三条纪律：
+  1. **帧率先压低**（先测 8fps）
+  2. **上下文分段采样**（16 帧窗口最稳）
+  3. **控制强约束数量**（一强一弱通常比三强乱锁更稳）
+
+一句话：**先保形，再保动，最后才补细节。**
+
+---
+
+### 三、官方与仓库里确认到的关键事实
+
+#### 1）VideoHelperSuite 是视频运输层，不是可有可无的小插件
+`ComfyUI-VideoHelperSuite` README 明确给出：
+- `Load Video`
+  - `force_rate`：丢帧或补帧到目标帧率；README 直接点名 **AnimateDiff 通常建议 8fps**。
+  - `frame_load_cap`：单次最多读入多少帧，本质就是分段处理上限。
+  - `skip_first_frames`：长视频分批处理的关键，用于续跑后续片段。
+  - `select_every_nth`：进一步抽帧，降低时序压力。
+- `Video Combine`
+  - `frame_rate`：通常与 `force_rate` 对齐；AnimateDiff 常规建议也是 **8fps**。
+  - 支持可选 `audio` 合成回输出视频。
+
+这说明 ComfyUI 的 vid2vid 不是“一次吞完整视频”最稳，而是：
+**先拆帧、限帧、分段，再合成回视频。**
+
+#### 2）AnimateDiff-Evolved 的关键，不只是 motion module
+GitHub 搜索结果与仓库说明都强调：
+- AnimateDiff 工作流常与 **ComfyUI-Advanced-ControlNet** 搭配。
+- 这个组合的价值在于：**让 ControlNet 和 Context Options 协同工作**，并可控制哪些 latent 段受约束。
+- 说明里明确提到：**Includes SparseCtrl support**。
+
+这很关键。因为 vid2vid 最容易炸的地方不是“没运动”，而是**长序列每一段各画各的**。能让 ControlNet 在上下文窗口内正确生效，才有资格谈时序一致性。
+
+#### 3）Reddit 社区反复验证的稳定规则
+从 `ComfyUI AnimateDiff Guide/Workflows Including Prompt Scheduling` 与相关讨论里，能提炼出几条非常实用的经验：
+- **AnimateDiff 的稳定甜点常在 16 帧上下**，偏离太远往往更容易乱。
+- **context overlap** 的意义，就是让窗口分段时有重叠，例如“1-16，12-28”，用重叠帧来缓和段与段之间的跳变。
+- 单帧 upscale 或 tile 重绘如果不加时序约束，常会出现 **“每帧细节都不一样”** 的问题；Reddit 上有人直接点名 `controlnet tile resample` 会把细节加得很散，结果整体仍不连贯。
+- 当结果像“互不相关的一堆图”时，常见原因不是模型坏了，而是：
+  1. 没有真正把视频帧当结构锚点
+  2. denoise 太高
+  3. context / overlap 没配好
+  4. 一次强行跑太长序列
+
+---
+
+### 四、Video-to-Video 的真正骨架
+
+#### 最小可用稳态链路
+```text
+Load Video (force_rate=8, frame_load_cap=N)
+  → Video Frames / Image Batch
+  → VAE Encode（或直接作为图像参考）
+  → ControlNet 预处理（Depth / Canny / Lineart / OpenPose，按题材选）
+  → Apply Advanced ControlNet / SparseCtrl
+  → Load AnimateDiff Model
+  → Apply AnimateDiff Model (Adv.)
+  → Context Options
+  → KSampler（低~中 denoise）
+  → VAE Decode
+  → Video Combine (frame_rate=8)
+```
+
+#### 这条链每个部分到底在干嘛
+- **Load Video**：把原视频变成“时序锚点来源”。
+- **ControlNet / SparseCtrl**：告诉模型“每一帧至少长成这个结构”。
+- **AnimateDiff**：负责把一批帧之间的运动关系串起来，不让它完全散掉。
+- **Context Options**：把长视频切成多个小时间窗去采样，并靠 overlap 粘合。
+- **KSampler denoise**：决定你是“保留原视频为主”，还是“强风格化重绘为主”。
+- **Video Combine**：只是封装回视频，不负责救一致性。
+
+---
+
+### 五、什么叫“一强一弱”的约束策略
+这是今天最值钱的操作认知。
+
+#### 强约束：锁结构 / 动作 / 透视
+常见强约束：
+- **Depth**：场景空间关系、景深、前后层级
+- **Canny / Lineart**：轮廓、硬边、UI、机械结构
+- **OpenPose**：人物动作
+- **SparseCtrl**：用稀疏关键帧或参考图约束更长段落的结构/运动走向
+
+#### 弱约束：补纹理 / 抑制脏细节飘移
+常见弱约束：
+- **Tile / Tile Resample**：细节补偿、纹理回填
+- 低权重 IP-Adapter：补风格而不是抢结构
+
+#### 为什么是一强一弱，而不是三强叠满
+因为 vid2vid 的核心矛盾不是“控制不够”，而是**约束互相打架**：
+- 强结构控太多 → 画面僵、边缘脏、动作发抖
+- 强风格控太多 → 主体形变、背景呼吸、闪烁加剧
+
+**我的推荐顺序：先选一个主结构锚，再补一个弱纹理锚。**
+
+---
+
+### 六、最稳的参数起手值（先保命，再追风格）
+
+#### 1）帧率与分段
+- `force_rate`：**8 fps 起手**
+- `frame_load_cap`：**16~24 帧一段**
+- `skip_first_frames`：用于长视频分批续跑
+- `context_length`：**16** 起手最稳
+- `context_overlap`：**4** 是很实用的起手值
+
+#### 2）denoise（vid2vid 的灵魂参数）
+- **0.20 ~ 0.30**：保留原视频结构与节奏，适合“实机录屏轻风格化”
+- **0.30 ~ 0.45**：风格化更明显，但仍可控，适合买量素材转绘
+- **0.50 以上**：除非你就是想重做镜头，否则很容易开始闪、漂、变脸
+
+**主人最该记的实战准则：**
+> 想要“这是同一个视频”——先别超过 0.35。
+
+#### 3）ControlNet 权重
+- 主结构约束：**0.7 ~ 1.0**
+- 弱纹理约束（Tile 等）：**0.2 ~ 0.5**
+
+#### 4）放大策略
+如果想输出更高清：
+- **先在低分辨率跑稳一致性**
+- 再做一轮保守 upscale / vid2vid refine
+- 不要一上来 1080p + 高 denoise + Tile 全开，那是作死
+
+---
+
+### 七、SparseCtrl 到底什么时候上
+不是所有视频都需要 SparseCtrl，但它在两类情况非常值钱：
+
+#### 1. 镜头跨度更长，普通 AnimateDiff 不够稳
+例如：
+- 角色从远景走到近景
+- 广告镜头做明显推拉
+- 多秒钟连续动作，不只是轻微呼吸
+
+#### 2. 你有关键帧想强制它别跑偏
+比如：
+- 开头必须保住《光与朽》的激光塔 silhouette
+- 中段必须保住 Boss 镰刀方向
+- 结尾必须保住 Logo / UI 信息
+
+这时 SparseCtrl 的价值不是“提高画质”，而是：
+**给长视频一个稀疏但高价值的路标系统。**
+
+---
+
+### 八、三套最实战模板
+
+#### 模板 A：实机录屏 → 赛博风格买量片
+用途：把 Unity 录屏快速包装成更抓眼的风格化广告。
+```text
+Load Video (8fps, 16帧一段)
+→ Depth / Canny
+→ AnimateDiff
+→ 低~中 denoise (0.25~0.35)
+→ Video Combine
+```
+要点：
+- Depth 锁场景层次
+- Canny 锁高对比轮廓（激光、塔、敌人边界）
+- 不要追求每帧大改，只要“像同一支高级广告”就够了
+
+#### 模板 B：角色/怪物宣传视频转绘
+用途：让角色立绘演示或 Boss 镜头更统一。
+```text
+Load Video / 帧序列
+→ OpenPose / Lineart（按素材选）
+→ AnimateDiff + Context
+→ IP-Adapter（低权重，可选）
+→ Video Combine
+```
+要点：
+- Pose 锁动作
+- 低权重 IP-Adapter 只补风格，不抢动作骨架
+
+#### 模板 C：长镜头 / 多秒镜头保形
+用途：做多秒测试素材，避免前后段换脸换世界。
+```text
+Load Video
+→ SparseCtrl / Advanced ControlNet
+→ AnimateDiff
+→ Context 16 + overlap 4
+→ 分段输出后合并
+```
+要点：
+- 重点不是一遍成神，是先把每段稳定，再拼整条
+
+---
+
+### 九、《光与朽》现在最该怎么落地
+
+#### 1. 优先处理什么素材
+不是先拿剧情动画练手，先拿：
+- 激光塔发射核心镜头
+- 敌人被切穿 / 蒸发的 1~2 秒爽点片段
+- Boss 待机或进场的短镜头
+
+因为这些素材：
+- 结构清楚
+- 视觉动词明确
+- 更容易验证“风格化之后 CTR 会不会更高”
+
+#### 2. 推荐起手流程
+1. Unity 录一段 **2 秒左右** 核心爽点
+2. `Load Video` 压到 **8fps**
+3. 先只上 **Depth 或 Canny 二选一**
+4. AnimateDiff 跑 **16 帧窗口 + overlap 4**
+5. `denoise` 先锁 **0.28 左右**
+6. 只输出 2~3 个风格版本做陌生人测试
+
+#### 3. 验收标准
+- 激光塔、敌人轮廓、UI 读不读得清
+- 同一镜头前后帧有没有“换游戏”感
+- 首 1 秒会不会比原录屏更抓眼
+- 有无闪烁、背景呼吸、角色边缘抖动
+
+如果这四条不过，别急着做长片，先回去减 denoise、减强约束数量、缩短段长。
+
+---
+
+### 十、最常见的翻车点
+1. **把 vid2vid 当成逐帧美图器。**
+   每帧单独变漂亮，不等于整条视频好看。
+2. **一上来就高分辨率。**
+   稳定性还没打通前，分辨率越高死得越快。
+3. **denoise 开太大。**
+   风格是更强了，但角色、敌人、特效已经不是原镜头了。
+4. **同时叠太多强 ControlNet。**
+   不是更稳，是更冲突。
+5. **长视频不分段。**
+   不懂 context 和 overlap，就别怪它抽风。
+6. **把 Tile 当救命神药。**
+   Tile 常常只会给你更多“每帧不同的小聪明细节”。
+
+---
+
+### 十一、今天最重要的操作纪律
+1. **vid2vid 先追一致性，再追风格冲击。**
+2. **8fps + 16 帧窗口 + overlap 4，是最值得先试的稳态起手式。**
+3. **一强一弱两路约束，通常比多路强锁更稳。**
+4. **denoise 先保守到 0.25~0.35，把“像同一条视频”放在第一位。**
+5. **《光与朽》先从 2 秒核心爽点片段试，不要一上来做 10 秒长广告。**
+
+---
+
+### 十二、下一步衔接
+如果沿路线继续推进，下一顺位就是：
+1. **音频驱动节点**（让动画跟节奏点动）
+2. **首尾帧闭环 / loop 技巧**
+3. **把 vid2vid 管线跟批量命名、批量测试素材体系接上**
+
+---
+
+### 参考来源
+- ComfyUI 既有学习记录中的官方 Video Examples 摘要（SVD / Video 参数说明）
+- GitHub：`Kosinkadink/ComfyUI-VideoHelperSuite` README（`force_rate`、`frame_load_cap`、`skip_first_frames`、`Video Combine frame_rate`）
+- GitHub 搜索结果：`Kosinkadink/ComfyUI-AnimateDiff-Evolved`（说明其常与 `ComfyUI-Advanced-ControlNet` 配合，并包含 SparseCtrl 支持）
+- Reddit：`[GUIDE] ComfyUI AnimateDiff Guide/Workflows Including Prompt Scheduling`（16 帧与 context overlap 经验）
+- Reddit：`Help, I've followed a bunch of animatediff tutorials... no temporal consistency whatsoever`（常见失败症状）
+- Reddit：`Best practice for temporally coherent video frames after applying optical flow and upscale?`（逐帧细节增强破坏一致性的案例）
+- YouTube：`ANIMATEDIFF COMFYUI TUTORIAL - USING CONTROLNETS AND MORE.`
+- YouTube：`AnimateDiff (vid2vid) ComfyUI Workflow Tutorial`
+- YouTube：`ComfyUI - Create Consistent & Smooth Animation (Vid2Vid)`
+- YouTube：`How To Use AnimateDiff for Video To Video in ComfyUI`
+- Bilibili：`细节满满！Comfyui-animatediff-工作流构建 | 从零开始的连连看！`
+- Bilibili：`ComfyUI系列14：animatediff视频转绘01，从0开始搭建animatediff视频转绘工作流`
+- Bilibili：`AI教程，ComfyUI视频转换成任何风格工作流分享（3D动画、动漫、主机游戏）`

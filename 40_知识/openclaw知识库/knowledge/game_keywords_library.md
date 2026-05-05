@@ -113,6 +113,15 @@
 - 即时闪避/弹反 (Real-time Dodge/Parry)
 - 行动点循环 (AP Loop)
 - 队伍协同构筑 (Party Synergy Build)
+- 加工调配 (Processing/Formulating)
+- 包装配送 (Packaging/Delivery)
+- 风险经营 (Heat/Risk Management)
+- 渠道扩张 (Territory/Channel Expansion)
+- 麻将消牌/成对匹配 (Mahjong Pair Matching)
+- 首局免广 (Ad-Free First Session)
+- 二局开割/延迟广告释放 (Delayed Ad Ramp)
+- 短关卡强插屏 (Short-Level Interstitial Pressure)
+- 功能性道具续命 (Utility Booster Sustain)
 
 ---
 
@@ -150,6 +159,7 @@
 - 物理 (Physics)
 - 数字 (Numbers)
 - 抽象 (Abstract)
+- 银发休闲/助眠放松 (Senior Casual / Relaxation)
 
 ### 社交类
 - 二次元/美少女 (Waifu)
@@ -191,6 +201,7 @@
 - 数值膨胀 (Stat Inflation)
 - 社交赌场式奖励流 (Social Casino Reward Loop)
 - 法式奇幻/美好年代 (Belle Époque Fantasy)
+- 黑色犯罪经营 (Crime Business Fantasy)
 
 ---
 
@@ -327,4 +338,6 @@
 | Isle of Arrows | 图块放置+铺路塑形+守线 | 桌游化塔防+Roguelike | 把地图生成权交给玩家，用抽牌铺图和空间取舍替代传统固定路径塔防 |
 | R.E.P.O. | 抓取+搬运+撤离 | 合作恐怖+工业回收 | 用物理失控和距离语音把每次失败都变成可传播内容 |
 | Clair Obscur: Expedition 33 | 普攻回能+技能爆发+即时闪避/弹反 | 法式奇幻+回合制RPG | 用实时防御提升回合制参与感，再用高规格演出放大Boss战价值 |
+| Schedule I | 加工调配+包装配送+渠道扩张 | 黑色犯罪经营+第一人称模拟 | 用一句话能讲清的高概念题材抓传播，再把手工微操逐步升级成规模化经营 |
+| Vita Mahjong | 麻将消牌+功能性道具续命 | 银发休闲+助眠放松 | 首局免广养留存，二局后用超短关卡+强插屏把IAA效率狠狠干满 |
 

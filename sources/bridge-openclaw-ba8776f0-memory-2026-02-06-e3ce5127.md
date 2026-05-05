@@ -1,0 +1,145 @@
+---
+pageType: source
+id: source.bridge.openclaw-ba8776f0.memory-2026-02-06-e3ce5127
+title: "Memory Bridge (main): 2026-02-06"
+sourceType: memory-bridge
+sourcePath: /Users/joye.wang/Projects/GamePlanningDoc/90_系统/openclaw/memory/2026-02-06.md
+bridgeRelativePath: memory/2026-02-06.md
+bridgeWorkspaceDir: /Users/joye.wang/Projects/GamePlanningDoc/90_系统/openclaw
+bridgeAgentIds:
+  - main
+status: active
+updatedAt: 2026-04-24T00:24:58.970Z
+---
+
+# Memory Bridge (main): 2026-02-06
+
+## Bridge Source
+- Workspace: `/Users/joye.wang/Projects/GamePlanningDoc/90_系统/openclaw`
+- Relative path: `memory/2026-02-06.md`
+- Kind: `markdown`
+- Agents: main
+- Updated: 2026-04-24T00:24:58.970Z
+
+## Content
+```markdown
+# 2026-02-06 记忆日志
+
+## 主人信息
+- 称呼：主人
+- 目标：创立一家游戏公司
+- 已完成游戏项目：美妆叠叠乐、光与朽
+
+## 光与朽游戏信息
+- 类型：肉鸽塔防弹幕类休闲游戏
+- 核心玩法：玩家操作激光射击怪物，打完 BOSS 就算通关
+- 目标用户：主要为男性玩家，喜欢射击塔防、激光解压游戏
+- 期望留存：首日留存 50%，七日留存 20%
+- 平台：微信小游戏
+- 目标：获得更多玩家，增加广告收益
+
+## 我的身份
+- 名字：小龙儿
+- 角色：主人的私人助理
+- 使用语言：中文
+
+## 当前任务
+### 基础任务
+1. ✅ GitHub策划案已拉取并分析完成
+2. 每天早上 10 点生成游戏行业简报
+3. 所有学习内容整理到知识库
+4. 持续挖掘热门游戏，拆解玩法，提取关键词 → knowledge/game_keywords_library.md
+
+### 自主学习任务（按优先级排序）
+
+**第一阶段：光与朽上线前**
+- [ ] 休闲游戏设计知识
+- [ ] 游戏策划知识（系统、数值、关卡、文案）
+- [ ] 游戏发行和运营知识
+- [ ] 用户增长和买量（自然量/付费量）
+- [ ] 数据分析（留存/LTV/ARPU/ROI）
+- [ ] 微信小游戏政策和规则
+
+**第二阶段：上线后**
+- [ ] 广告投放实操（巨量引擎/腾讯广告）
+- [ ] 商业化设计（IAA/IAP混合变现）
+- [ ] 竞品分析方法
+
+**第三阶段：公司化**
+- [ ] 游戏公司战略规划
+- [ ] 财务基础（成本/收入/利润）
+- [ ] 法务知识（版号/版权/合同）
+- [ ] 团队组建和管理
+- [ ] 融资和BP撰写
+
+**平台知识**
+- [ ] 抖音小游戏政策
+- [ ] Steam上架流程
+- [ ] 海外发行渠道
+
+## 主人创业背景
+- 2025年6月来深圳创业，立项怪兽管理局
+- 因投资人资金问题，团队解散
+- 之后一个人做小游戏开发
+- 美妆叠叠乐：商业化考虑优先，忽略玩法本身，失败
+- 光与朽：吸取经验，改进玩法创意，等待2026年上线测试
+
+## 下一步计划
+- 光与朽完成后，从关键词库组合下一款游戏创意
+- 持续积累玩法关键词和热门游戏拆解
+
+## 知识库文件
+- knowledge/marketing.md - 休闲游戏运营发行策略
+- knowledge/wechat_minigame_market.md - 微信小游戏市场调研报告
+- knowledge/game_design.md - 游戏策划知识体系
+
+## 已安装的技能
+1. marketing-mode v1.0.0
+2. marketing-skills v0.1.2
+3. deepresearchwork v1.0.0
+4. create-content v1.0.0
+5. planning-with-files v1.2.0
+6. social-media-management v1.0.0
+7. content-ideas-generator v1.0.0
+8. parallel-deep-research v1.0.0
+9. prd v2.0.5
+
+## 已创建的定时任务
+1. Daily Game Industry Briefing - 每天早上 10 点生成游戏行业简报
+2. Daily Backup - 每天凌晨 12 点备份数据
+3. Hourly Status Report - 每小时发送工作状态报告
+
+## 知识库
+- knowledge/marketing.md - 休闲游戏运营发行策略
+- knowledge/wechat_minigame_market.md - 微信小游戏市场调研
+- knowledge/game_design.md - 游戏策划知识体系
+- knowledge/game_projects_summary.md - 游戏项目策划案总结 ✅新增
+- knowledge/guangyuxiu_complete.md - 光与朽完整策划知识库 ✅新增
+
+## GitHub文档分析完成 (14:21)
+从 https://github.com/mengzhugame/GamePlanningDoc.git 拉取并分析了以下内容:
+
+### 主要项目
+1. **光与朽**: 26个文档，包含GDD V1-V5、数值文档、平衡方案、Boss设计等
+2. **美妆叠叠乐**: 25个文档，包含GDD、关卡编辑器、商业计划等
+3. **塔防**: 5个项目，包含元素堡垒守卫者、黎明防线等
+
+### 核心发现
+- 光与朽 V4.0 核心玩法: 战斗-决策极简闭环，三色箱子Gacha系统
+- 美妆叠叠乐 GDD 2.0: 锁与奖杯设计哲学，临时槽位策略
+- 小红书IP打造6周计划: 真实记录游戏开发历程
+- 游戏创意筛选记录: 8个创意点评
+
+### 备份位置
+/Users/joye.wang/wangyongcheng/openclaw_backup/knowledge/
+
+```
+
+## Notes
+<!-- openclaw:human:start -->
+<!-- openclaw:human:end -->
+
+## Related
+<!-- openclaw:wiki:related:start -->
+- No related pages yet.
+<!-- openclaw:wiki:related:end -->
