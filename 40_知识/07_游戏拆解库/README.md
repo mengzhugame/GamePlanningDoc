@@ -19,7 +19,7 @@
 
 ## 写入规则
 
-- 任何 AI（Claude Code / openclaw / Codex）都可以写
+- 任何 AI（Claude Code / Codex）都可以在用户确认任务范围后写
 - **写之前必须 grep `_INDEX.md` 的 `game_name`，避免重复拆解**
 - 必须按 `90_系统/schemas/game-teardown-schema.md`
 - 必须按 `90_系统/templates/game-teardown-template.md` 12 段结构

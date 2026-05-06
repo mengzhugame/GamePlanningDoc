@@ -4,7 +4,7 @@ type: pitch_audit
 status: pending  # pending | passed | partial | failed
 created: {{date}}
 direction_name: ""
-parent_pool: ""  # 关联到 00_概念池.md
+parent_pool: ""  # 关联到 00_游戏创意总表.md
 iron_rule_1_passed: null  # true | false | null(未拷问)
 iron_rule_1_competitors: []  # 对标同类爆款列表
 iron_rule_2_passed: null

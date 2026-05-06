@@ -1,9 +1,9 @@
----
+﻿---
 type: pitch_audit
 status: pending
 created: {{date}}
 direction_name: "<方向名>"
-parent_pool: "20_项目/03_概念验证_YYYY-MM/00_概念池.md"
+parent_pool: "00_草稿/游戏创意库/00_游戏创意总表.md"
 iron_rule_1_passed: null
 iron_rule_1_competitors: []
 iron_rule_2_passed: null
@@ -18,7 +18,7 @@ verdict_date: ""
 
 > 触发方式:`/iron-rule-check <方向名>`
 > 铁律本体:[[立项铁律_2026-05]]
-> 完整流程:[[休闲小游戏创意验证流程_v1]]
+> 完整流程：[[休闲小游戏创意验证流程_v1]]
 
 ---
 
@@ -95,7 +95,7 @@ verdict_date: ""
 
 ☐ **passed**:三条铁律全过 → 进入 [创意验证流程 v1] 阶段 3(AI 概念视频制作)
 ☐ **partial-needs-pivot**:某条险过,需调整对标 / 美术路径 / Demo 范围,再回来重审
-☐ **failed**:某条根本过不了 → 砍掉这个方向,回到 [00_概念池] 找下一个
+☐ **failed**:某条根本过不了 → 砍掉这个方向，回到 [00A_待审核创意表] 或 [00_游戏创意总表] 找下一个
 
 **判断日期**:YYYY-MM-DD
 
@@ -105,6 +105,7 @@ verdict_date: ""
 
 ## 后续动作
 
-- ☐ 已更新 `20_项目/03_概念验证_YYYY-MM/00_概念池.md` 表格,记录本方向状态
+- ☐ 已更新 `00_草稿/游戏创意库/00_游戏创意总表.md` 表格，记录本方向状态
 - ☐ 通过 → 启动 AI 概念视频制作(参考已归档塔防项目模板)
 - ☐ 未通过 → 文件保留 status=failed,作为未来复盘案例
+

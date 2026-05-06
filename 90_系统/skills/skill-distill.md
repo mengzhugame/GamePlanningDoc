@@ -1,27 +1,30 @@
-# /distill — Weekly Distillation Skill
+# /distill — Weekly / Monthly Distillation Skill
 
 ## Trigger
-User invokes `/distill` (typically weekly) with an optional time range (default: last 7 days).
+
+User invokes `/distill` with an optional time range. Default range: last 7 days.
 
 ## Procedure
+
 1. Collect candidate sources:
    - `10_流水/YYYY-MM-DD.md` files within range
-   - `30_openclaw_inbox/` files with `status: triaged`
-   - `60_索引/AI对话/` entries with `distill_worthy: true` and no `distilled_ref`
-2. Cluster candidates by topic using existing tag vocabulary + `assigned_domain`
-3. For each cluster with ≥2 related pieces:
-   a. Decide if a new `knowledge-schema` entry is needed, OR an existing entry should be updated
-   b. If new: create at `40_知识/<domain>/<topic-slug>.md` using knowledge-schema, status=draft
-   c. If update: append to existing, increment `review_count`, update `last_reviewed`
-   d. Cross-link with Obsidian `[[]]` wikilinks between the new knowledge entry and every source it consumed
-4. Update all consumed sources:
-   - Inbox files → `status: distilled`, fill `distilled_ref`
-   - AI conversation index → `status: distilled`, fill `distilled_ref`
-5. Write a summary report to `10_流水/YYYY-MM-DD.md` listing all new/updated knowledge entries
-6. READ BACK every new knowledge file and verify schema + wikilink integrity
+   - `30_市场分析/` notes within range
+   - `00_草稿/游戏创意库/` concept cards and concept-video data records with clear validation results
+   - AI conversation index entries with `distill_worthy: true` and no `distilled_ref`
+   - project review notes from `20_项目/`
+2. Cluster candidates by topic using existing tag vocabulary and target domain.
+3. For each cluster with enough evidence:
+   - Decide whether to create a new `knowledge-schema` entry or update an existing entry.
+   - If new, create it under `40_知识/<domain>/`.
+   - If update, append a dated section to the existing file and update review metadata.
+   - Cross-link every consumed source with Obsidian wikilinks.
+4. Update consumed source status where the source has frontmatter.
+5. Write a summary report to `10_流水/YYYY-MM-DD.md`.
+6. Read back every new or updated knowledge file and verify schema, links, and source traceability.
 
 ## Constraints
-- Preserve original phrasing for definitions, formulas, data (see `/knowledge` constraint #1)
-- Every knowledge entry must cite at least one source via `source_book` / `source_page` / `raw_path`
-- Single-source items (clusters of 1) → skip this round, wait for more material
-- Never delete or overwrite `10_流水/` or inbox source files
+
+- Preserve original phrasing for definitions, formulas, and exact data.
+- Every knowledge entry should cite at least one source path or source note.
+- Single-source weak signals can remain in source areas until more evidence appears.
+- Never delete or overwrite source materials during distillation.

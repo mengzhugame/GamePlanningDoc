@@ -1,4 +1,4 @@
-# 用户痛点扫描 Routine — /schedule 配置
+﻿# 用户痛点扫描 Routine — /schedule 配置
 
 > **如何创建这个云端 routine**：
 > 1. 在 Claude Code 输入 `/schedule create`（或者直接说"帮我用下面的 prompt 创建一个每周一 9:30 的 routine"）
@@ -26,7 +26,7 @@
 1. CLAUDE.md / 90_系统/SYSTEM_PROMPT.md
 2. 40_知识/01_游戏设计/立项铁律_2026-05.md
 3. 40_知识/07_游戏拆解库/_INDEX.md（已拆解的 8+ 款代表作）
-4. 20_项目/03_概念验证_*/00_概念池.md（当前候选方向）
+4. 00_草稿/游戏创意库/00_游戏创意总表.md、00A_待审核创意表.md、00B_已通过创意表.md（当前候选方向）
 
 ## 任务步骤
 
@@ -60,7 +60,7 @@
 - 跟当前**拆解库 / 概念池**的关联（若有）
 
 ### Step 4 — 跟概念池对照
-对照 `20_项目/03_概念验证_*/00_概念池.md` 当前候选方向：
+对照 `00_草稿/游戏创意库/00_游戏创意总表.md` 和 `00A_待审核创意表.md` 当前候选方向：
 - 本周痛点对哪些方向是**支撑**？
 - 本周痛点对哪些方向是**反驳**？
 - 是否浮出**新的潜在方向**？
@@ -71,7 +71,7 @@
 格式：「**机制 + 题材 + 微创新点**」（对应 `idea-score-schema` 的组件×题材结构）
 
 ## 产出文件
-路径：`30_openclaw_inbox/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
+路径：`30_市场分析/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
 frontmatter 按 `inbox-digest-schema`：
 - `status: inbox`
 - `source: claude-cloud-user-pain-scan`
@@ -91,7 +91,7 @@ frontmatter 按 `inbox-digest-schema`：
 
 ## 提交方式
 1. `git checkout -b user-pain-scan/YYYY-MM-DD`
-2. `git add 30_openclaw_inbox/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
+2. `git add 30_市场分析/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
 3. `git commit -m 'feat: 用户痛点扫描 YYYY-MM-DD'`
 4. `git push origin user-pain-scan/YYYY-MM-DD`
 5. `gh pr create --title '用户痛点扫描 YYYY-MM-DD' --body <报告摘要>`
@@ -118,8 +118,9 @@ frontmatter 按 `inbox-digest-schema`：
 |---------|------|------|------|
 | 周度市场扫描 | 周一 9am | 产品爆款层 | `web_market_scan_*.md` |
 | **用户痛点扫描**（本配置） | 周一 9:30am | 用户原话层 | `user_pain_scan_*.md` |
-| 立项审计 | 月 15 号 | 概念池审计 | `20_项目/03_概念验证_*/` |
+| 立项审计 | 月 15 号 | 创意库审计 | `00_草稿/游戏创意库/` |
 | 月度雷达 | 月 1 号 | 月度趋势 | `monthly_radar_*.md` |
 | 季度归档 | 季度 | 历史归档 | `90_系统/archive/` |
 
-**消费链路**：周度产品扫描 + 周度痛点扫描 → 月度雷达汇总 → `/distill` 蒸馏方法论 → `/idea-score` 打分 → `/iron-rule-check` 拷问 → 概念池 → AI 视频测试 → 切片 → 立项。
+**消费链路**：周度产品扫描 + 周度痛点扫描 → 月度雷达汇总 → `/distill` 蒸馏方法论 → `/idea-score` 打分 → `/iron-rule-check` 拷问 → 游戏创意库 → AI 视频测试 → 切片 → 立项。
+

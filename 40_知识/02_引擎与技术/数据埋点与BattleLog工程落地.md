@@ -3,7 +3,7 @@ type: knowledge
 status: review
 created: 2026-04-29
 source_book: 光与朽数据埋点与 IAA 系统文档（V2 双源）+ MVP 草稿 + WXAdsManager 模板
-source_page: 20_项目/02_光与朽项目/01_策划文档/光与朽_数据埋点系统文档_V2.0.md; 20_项目/02_光与朽项目/01_策划文档/光与朽_MVP数据埋点需求文档.md; 20_项目/02_光与朽项目/01_策划文档/光与朽_IAA广告接入系统文档_V2.0.md; 40_知识/代码模板库/06_WXAdsManager.md
+source_page: 20_项目/02_光与朽项目/01_策划文档/光与朽_数据埋点系统文档_V2.0.md; 20_项目/02_光与朽项目/01_策划文档/光与朽_MVP数据埋点需求文档.md; 20_项目/02_光与朽项目/01_策划文档/光与朽_IAA广告接入系统文档_V2.0.md; 40_知识/02_引擎与技术/代码模板库/06_WXAdsManager.md
 domain: 02_引擎与技术
 tags: [数据埋点, BattleLog, 微信场景分析, IAA埋点, AnalyticsManager, 工程化]
 last_reviewed: 2026-04-29

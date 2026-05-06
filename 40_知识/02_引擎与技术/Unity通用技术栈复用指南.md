@@ -3,7 +3,7 @@ type: knowledge
 status: review
 created: 2026-04-29
 source_book: 代码模板库 14 个模板（MZ02 + LightVSDecay 双项目提取）
-source_page: 40_知识/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md
+source_page: 40_知识/02_引擎与技术/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md
 domain: 02_引擎与技术
 tags: [Unity, 微信小游戏, 单例, 场景加载, 音频, 存档, 广告, UI动效, 飘字, 事件总线, 埋点, 资源管理, 工程化, 决策指南]
 last_reviewed: 2026-04-29
@@ -92,7 +92,7 @@ review_count: 2
 |------|---------|-----------|
 | [[05_SaveManager\|05 SaveManager]] | 有用户系统、有云存档、需要本地+服务器双写 | 纯单机数据用 `PlayerPrefs` 直接搞，别套这个 |
 | [[07_UIAnimationHelper\|07 UIAnimationHelper]] | 任何属性数值反馈（金币 +1、等级提升、装备强化） | 没有数值反馈的纯展示 UI |
-| [[UGUI挖孔遮罩/README\|08 UGUI 挖孔遮罩]] | 有新手引导聚光灯、高亮某个按钮的需求 | 没有引导需求 |
+| [[代码模板库/UGUI挖孔遮罩/README\|08 UGUI 挖孔遮罩]] | 有新手引导聚光灯、高亮某个按钮的需求 | 没有引导需求 |
 | [[09_CoinFlyAnimation\|09 CoinFlyAnimation]] | 战斗 / 关卡类，怪物死亡掉金币 / 宝箱开奖 | 纯解谜 / 收纳类（用旧 09 极简版即可） |
 | [[10_FloatingTextSystem\|10 FloatingTextSystem]] | 战斗类、有暴击 / 弱点 / 元素伤害 / 拾取奖励数值 | 单条文字提示用 `Text + Animator` 就够了 |
 | [[14_ProgressManager_CurrencyTopBar\|14 ProgressManager + 顶部栏]] | 有局外资源（金币/钻石/体力/蓝图）+ 顶部 HUD 实时刷新 | 无体力概念的休闲 / 解谜（用 BeautyStacking 简单版即可） |
@@ -177,15 +177,15 @@ review_count: 2
 ```
 怪物死亡 → GameEvents.OnEnemyDied 触发
    ↓
-[[09]] CoinPickupSpawner 监听事件，生成 N 个金币（视觉数压缩）
+[[09_CoinFlyAnimation|09]] CoinPickupSpawner 监听事件，生成 N 个金币（视觉数压缩）
    ↓ 三阶段动画：散落 → 悬浮 → 贝塞尔吸附
-[[14]] TopAreaController.GoldBarWorldPos 作为吸附目标
+[[14_ProgressManager_CurrencyTopBar|14]] TopAreaController.GoldBarWorldPos 作为吸附目标
    ↓ 到达 80%
-[[09]] coinArriveNotifier 回调
+[[09_CoinFlyAnimation|09]] coinArriveNotifier 回调
    ├── ProgressManager.AddCoins(visualValue)         ← 资源累加
    ├── AudioManager.PlayCoinCollect()                ← 带冷却音效
-   ├── [[07]] UIAnimationHelper.PlayScalePunch       ← 资源栏整体抖一下
-   └── [[10]] FloatingTextManager.Show "+1"          ← 飘字浮起
+    ├── [[07_UIAnimationHelper|07]] UIAnimationHelper.PlayScalePunch       ← 资源栏整体抖一下
+    └── [[10_FloatingTextSystem|10]] FloatingTextManager.Show "+1"          ← 飘字浮起
 ```
 
 这套链路任何一环都不可少——少一个就感觉"不够爽"。
@@ -224,14 +224,14 @@ review_count: 2
 
 ---
 
-## 九、与 [[40_知识/代码模板库/00_INDEX|代码模板库]] 的关系
+## 九、与 [[代码模板库/00_INDEX|代码模板库]] 的关系
 
 | 放哪 | 内容 |
 |------|------|
-| `40_知识/代码模板库/0X_*.md` | **可直接复制的代码 + 配套接入步骤** |
+| `40_知识/02_引擎与技术/代码模板库/0X_*.md` | **可直接复制的代码 + 配套接入步骤** |
 | 本文（`02_引擎与技术/Unity通用技术栈复用指南.md`） | **决策与经验**：什么时候选哪个、为什么这么选、踩过什么坑 |
 
 新项目立项时的工作流：
 1. 读本文 → 决定要抄哪几个模板
-2. 跳到 `代码模板库/00_INDEX.md` → 按列表复制对应文件
+2. 跳到 `40_知识/02_引擎与技术/代码模板库/00_INDEX.md` → 按列表复制对应文件
 3. 按本文的"铁律"做命名空间 rename + 集中常量化

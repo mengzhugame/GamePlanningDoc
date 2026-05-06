@@ -3,7 +3,7 @@ type: knowledge
 status: review
 created: 2026-04-24
 source_book: 小龙儿主脑多Agent系统输出
-source_page: 20_项目/00_个人IP运营打造/小红书IP诊断报告_20260318 + 抖音IP诊断报告_20260318
+source_page: 50_商业/00_个人IP运营打造/小红书IP诊断与重启报告_20260318.md + 50_商业/00_个人IP运营打造/抖音IP诊断与重启报告_20260318.md
 domain: 06_发行与运营
 tags: [小红书, 抖音, 个人IP, 内容运营, 独立游戏推广, 爆款方法论]
 last_reviewed: 2026-04-24

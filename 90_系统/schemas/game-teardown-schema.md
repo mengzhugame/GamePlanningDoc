@@ -17,7 +17,7 @@ core_mechanic_keywords: []  # 弹球 / 物理 / 三选一 / 卡片摆放 / 灵�
 art_style: ""  # 风格化 / 恐怖暗黑 / 明亮卡通 / 像素 / 写实
 monetization: ""  # IAA / IAP / 混合
 torn_down_at: ""  # 拆解日期 YYYY-MM-DD
-torn_down_by: ""  # claude-code / openclaw / codex / user
+torn_down_by: ""  # claude-code / codex / user
 sources: []  # 调研用到的链接 / 视频 / 文章
 related_projects: []  # 跟用户已有项目的相邻度（美妆叠叠乐 / 光与朽 / 概念池方向）
 distilled_ref: ""  # 蒸馏到方法论后的引用 wikilink
