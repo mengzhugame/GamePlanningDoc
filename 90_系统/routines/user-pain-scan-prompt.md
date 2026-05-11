@@ -1,4 +1,4 @@
-﻿# 用户痛点扫描 Routine — /schedule 配置
+# 用户痛点扫描 Routine — /schedule 配置
 
 > **如何创建这个云端 routine**：
 > 1. 在 Claude Code 输入 `/schedule create`（或者直接说"帮我用下面的 prompt 创建一个每周一 9:30 的 routine"）
@@ -71,7 +71,7 @@
 格式：「**机制 + 题材 + 微创新点**」（对应 `idea-score-schema` 的组件×题材结构）
 
 ## 产出文件
-路径：`30_市场分析/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
+路径：`30_市场分析/用户痛点周度扫描/user_pain_scan_YYYY-MM-DD.md`
 frontmatter 按 `inbox-digest-schema`：
 - `status: inbox`
 - `source: claude-cloud-user-pain-scan`
@@ -91,7 +91,7 @@ frontmatter 按 `inbox-digest-schema`：
 
 ## 提交方式
 1. `git checkout -b user-pain-scan/YYYY-MM-DD`
-2. `git add 30_市场分析/YYYY-MM-DD/user_pain_scan_YYYY-MM-DD.md`
+2. `git add 30_市场分析/用户痛点周度扫描/user_pain_scan_YYYY-MM-DD.md`
 3. `git commit -m 'feat: 用户痛点扫描 YYYY-MM-DD'`
 4. `git push origin user-pain-scan/YYYY-MM-DD`
 5. `gh pr create --title '用户痛点扫描 YYYY-MM-DD' --body <报告摘要>`
