@@ -1,30 +1,136 @@
-# /distill — Weekly / Monthly Distillation Skill
+# /distill — 蒸馏批次执行 Skill
 
 ## Trigger
 
-User invokes `/distill` with an optional time range. Default range: last 7 days.
+用户调 `/distill` 时启动。默认每批处理 5 个未蒸馏文件，可在参数里指定（如 `/distill 3` 或 `/distill 10`）。
 
-## Procedure
+## 核心目的
 
-1. Collect candidate sources:
-   - `10_流水/YYYY-MM-DD.md` files within range
-   - `30_市场分析/` notes within range
-   - `00_草稿/游戏创意库/` concept cards and concept-video data records with clear validation results
-   - AI conversation index entries with `distill_worthy: true` and no `distilled_ref`
-   - project review notes from `20_项目/`
-2. Cluster candidates by topic using existing tag vocabulary and target domain.
-3. For each cluster with enough evidence:
-   - Decide whether to create a new `knowledge-schema` entry or update an existing entry.
-   - If new, create it under `40_知识/<domain>/`.
-   - If update, append a dated section to the existing file and update review metadata.
-   - Cross-link every consumed source with Obsidian wikilinks.
-4. Update consumed source status where the source has frontmatter.
-5. Write a summary report to `10_流水/YYYY-MM-DD.md`.
-6. Read back every new or updated knowledge file and verify schema, links, and source traceability.
+**把 `10_流水/` 散落的 AI 对话 / 项目笔记 / Openclaw 旧知识库 / 游戏拆解，按主题追加到对应目录的现有文件里**，让下次开新 AI 对话时直接读相关目录就有完整背景，不用从零讲。
+
+不是分类归档，是**主题信息聚合**。
+
+## 工作流（5 阶段）
+
+### 阶段 1：扫表（新文件入表）
+
+1. 用 glob 列出 `10_流水/**/*.md`
+2. 排除：`已蒸馏文件/` 下任何文件、`蒸馏批次记录.md` 本身、`README.md`
+3. 对照 `10_流水/蒸馏批次记录.md` 找出**未入表**的新文件
+4. 对每个新文件：
+   - 读首 30 行 + 看文件名 + 看所在子目录
+   - AI 判断**类型**（按下表 §C）+ 一句话**主题摘要**
+   - 追加到 `蒸馏批次记录.md` 表格，状态填 `未蒸馏`
+5. 更新「进度统计」段的总文件数 + 未蒸馏数
+6. 向用户报告：「新入表 N 个，目前总未蒸馏 M 个」
+
+### 阶段 2：挑批
+
+1. 从记录表中 `状态: 未蒸馏` 的条目中选 N 个（默认 N=5）
+2. 选择策略（默认按日期最旧优先；用户可在调用时指定主题/项目优先）
+3. 把这 N 行的状态改为 `蒸馏中`
+4. 向用户报告：「本批将蒸馏这 N 个文件: [列清单]」
+
+### 阶段 3：蒸馏（每个文件独立处理）
+
+对每个文件：
+
+1. **完整读文件内容**
+2. **价值评估**：
+   - 文件有没有可沉淀的价值？（不是文件本身好坏，是「蒸馏后是否能给下次 AI 对话补充背景」）
+   - 没有 → 状态改为 `无价值删除`，备注填原因，跳过执行
+3. **提炼有价值片段** + **匹配目标目录的目标文件**：
+   - 优先「追加到已有主题文件」，避免主题碎片化
+   - 文件已存在 → `append` 一段新内容，加 markdown 二级标题 `## 来源: <原相对路径> · 提取日期 YYYY-MM-DD`
+   - 文件不存在 → 新建，按目标目录的现有命名约定（详见 §C 默认沉淀方向）
+   - **一个流水文件可能拆到多个目标文件**（如一份 AI 对话里既谈了商业方向也谈了项目细节）
+4. **直接执行写入**（不需要先报告等用户审核）
+5. 在 `蒸馏批次记录.md` 对应行填写：
+   - `沉淀去向`：所有目标文件路径，逗号分隔
+   - `批次`：B-NNN（连续编号，从历史最大批次号 +1）
+   - `蒸馏日期`：YYYY-MM-DD
+   - 状态改为 `已蒸馏`
+6. **原文 mv 到归档**：`10_流水/已蒸馏文件/<原相对路径>/`（保留子目录结构便于反查）
+
+### 阶段 4：诊断反馈累积
+
+蒸馏 N 个文件过程中，AI 持续扫描：
+
+- **反复出现的纠结点**（同一类问题在 ≥ 2 个文件里反复出现）
+- **思维盲区**（用户多次踩同类坑：如反复纠结公司化 / 反复在同质化方向上立项 / 反复加功能拒绝面对市场）
+- **未落地的好建议**（AI 在历史对话给过的建议，用户没落地）
+
+这些 flag 追加到 `70_用户信息/思维盲区与提升点.md`，按 schema（编号 / 类型 / 标题 / 频次 / 首次发现 / 最近出现 / 建议处理 / 状态）。
+
+**门槛**：同一类盲区**出现 ≥ 2 次**才入表（避免一次性抱怨被记录）。
+
+### 阶段 5：本批总报
+
+完成 N 个文件后，给用户：
+
+```
+本批蒸馏总结（批次 B-NNN，2026-MM-DD）
+
+蒸了 N 个文件：
+  1. <路径> → 沉淀到 [目标文件们]
+  2. <路径> → 沉淀到 [目标文件们]
+  ...
+
+新增了 X 个目标文件：
+  - <新建文件 1>
+  - <新建文件 2>
+
+扩充了 Y 个已有文件：
+  - <已有文件 1>（追加 Z 段）
+  ...
+
+思维盲区累积：
+  本批 flag 了 K 条新条目到 70_用户信息/思维盲区与提升点.md
+  （或：本批未发现新盲区，已有盲区频次更新 K 条）
+
+进度：
+  已蒸馏 X / 总数 257 (X%)
+  剩余未蒸馏 Y 个
+  下批建议优先：<主题/项目，基于剩余分布>
+```
+
+## C. 类型分类规则 + 默认沉淀方向
+
+阶段 1 入表时按下表判断类型；阶段 3 蒸馏时按下表参考沉淀方向（最终由 AI 根据文件实际内容决定，不死守表）：
+
+| 类型 | 识别特征 | 默认沉淀方向 |
+| --- | --- | --- |
+| **AI对话_项目** | 文件名含「美妆叠叠乐」「光与朽」或位于 `光与朽项目/`、`美妆叠叠乐项目/` 子目录 | `20_项目/0N_XX/01_策划文档/` 追加 + 必要时进 `20_项目/0N_XX/04_AI对话记录/` 索引 |
+| **AI对话_战略** | 文件名含「人生规划」「商业」「公司化」「IP」「财务」「徒步思考」 | `50_商业/` + `70_用户信息/` |
+| **AI对话_工具链** | 文件名含「AI 美术」「Comfyui」「AI 代码」「workflow」 | `40_知识/02_引擎与技术/` 或 `40_知识/03_美术/` |
+| **游戏拆解** | 位于 `游戏拆解/` 或 `batch_NNN_*.md` | `40_知识/07_游戏拆解库/`（多个 batch 可能要合并） |
+| **Openclaw知识库** | 位于 `Openclaw知识库文件/` | 按内容主题分散到 `40_知识/0N_主题/`，部分可能无价值 → `无价值删除` |
+| **日记流水** | `YYYY-MM-DD.md`，位于 `2026-04/` 或 `2026-05/` | 散到多个目标目录（一份日记可能拆 3-4 处） |
+| **项目专项文档** | 文件名前缀「实现-」「分析-」「方案-」 | `20_项目/02_光与朽项目/01_策划文档/` 追加 |
+
+## D. 关键纪律
+
+- **优先追加到已有主题文件**，不要每次新建（避免主题碎片化）
+- **每次追加都标「来源: <原相对路径> · 提取日期」**，保持可追溯
+- **流水原文不删，移到 `10_流水/已蒸馏文件/<原相对路径>/`**（保留子目录结构）
+- **诊断反馈集中到一份**：`70_用户信息/思维盲区与提升点.md`（不要每个集群末尾都写一段）
+- **AI 自主判断去向**，蒸馏完末尾总报告，不每个文件停下来等审核
+- **「无价值删除」也要在记录表里留一行**（path / 类型 / 摘要 / 状态=无价值删除 / 原因），便于事后审计
+- **跨多文件同主题处理**：当 AI 发现某主题已经在目标文件追加过 ≥ 5 次（看「来源」段计数），建议本批结束时整篇重写消除重复，而不是继续累积 append
+- **去重防呆**：写入前 grep 目标文件，看是否已经有相同内容来源（避免同一份对话被误蒸两次）
+
+## E. 边界 case 处理
+
+- **副本文件**（如 `2026-05-02 - 副本 (10).md`）：先跟主版本 diff，若内容相同 → 直接 `无价值删除`；若有独有内容 → 蒸馏独有部分
+- **通用文件名**（如 `findings.md` / `open_issues.md` / `code_analysis_report.md`）：必须 Read 完整内容才能判断价值和归属，不要凭文件名猜
+- **跨项目对话**（同一文件既谈了美妆叠叠乐又谈了光与朽）：拆成多目标，两个项目目录都写
+- **已部分蒸馏的来源**（如「向僵尸开炮.md」已在 40_知识/07_游戏拆解库/ 有 2026-05_向僵尸开炮.md）：先 diff 检查是否有补充内容；无补充 → `无价值删除` + 备注「已有同名拆解」
+- **过时的 Openclaw 文件**（如 `INTELLIGENCE_LOOP.md`、`MEMORY.md` 等旧系统元数据）：评估是否还有方法论价值，无 → `无价值删除`
 
 ## Constraints
 
-- Preserve original phrasing for definitions, formulas, and exact data.
-- Every knowledge entry should cite at least one source path or source note.
-- Single-source weak signals can remain in source areas until more evidence appears.
-- Never delete or overwrite source materials during distillation.
+- 不修改其它已有目录的 schema 规则
+- 不删除流水原文（永远 mv 到归档）
+- 蒸馏后必须读回 1-2 个目标文件验证 schema 和链接（CLAUDE.md「Read-Back Verification」铁律）
+- 单次执行不超过用户指定的批次数量（默认 5），避免上下文爆炸
+- 触发的目标目录改动如果在 `20_项目/` 下已立项文件，遵守 CLAUDE.md「绝对禁止」段（未经用户同意改 20_项目/ 下已有正式文件）—— 不直接改正式策划，改去同目录的 `01_策划文档/AI讨论汇总.md` 或新建文件
