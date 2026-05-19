@@ -6,8 +6,9 @@ source_book: 代码模板库 14 个模板（MZ02 + LightVSDecay 双项目提取�
 source_page: 40_知识/02_引擎与技术/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md
 domain: 02_引擎与技术
 tags: [Unity, 微信小游戏, 单例, 场景加载, 音频, 存档, 广告, UI动效, 飘字, 事件总线, 埋点, 资源管理, 工程化, 决策指南]
-last_reviewed: 2026-04-29
-review_count: 2
+updated: 2026-05-19
+last_reviewed: 2026-05-19
+review_count: 5
 ---
 
 # Unity 通用技术栈复用指南
@@ -235,3 +236,161 @@ review_count: 2
 1. 读本文 → 决定要抄哪几个模板
 2. 跳到 `40_知识/02_引擎与技术/代码模板库/00_INDEX.md` → 按列表复制对应文件
 3. 按本文的"铁律"做命名空间 rename + 集中常量化
+
+---
+
+## 来源: `10_流水/光与朽项目/分析-Ch2怪物数据检查与注册流程_202603.md` · 提取日期 2026-05-17
+
+## ScriptableObject 数据驱动要检查“双注册”
+
+Unity 数据驱动项目里，`EnemyData.asset` 存在不等于怪物能生成。《光与朽》Ch2 无怪物出现的根因是两处注册缺失：
+
+| 注册层 | 作用 | 漏掉后表现 |
+| --- | --- | --- |
+| 数据库注册 | `EnemyDatabase.asset` 负责从 `enemyType` 找到 EnemyData | Wave 引用 type，但 `GetData(type)` 返回 null |
+| 对象池注册 | `EnemyPoolManager.enemyConfigs` 负责从 type 找到预制体池 | 数据能查到，但 Spawn 返回 null |
+
+可复用检查清单：
+
+1. 新增任何怪物类型时，同时更新枚举、EnemyData、EnemyDatabase、Pool 配置、波次配置。
+2. 精英怪如果不走 Pool，要确认独立 Instantiate 路径真的覆盖该 type。
+3. 静态障碍、炮手、分裂怪等特殊行为要检查 `behaviorType`，不要沿用 Chase 默认值。
+4. 子体生成字段要检查章节一致性，避免 Ch2 怪分裂出 Ch1 怪。
+5. 对“无怪物出现”这类问题，先查数据注册和 Pool 注册，再查 AI 逻辑。
+
+这类 bug 的危险点是“不一定报错”：系统可能静默跳过生成，导致开发者误判为波次逻辑或场景问题。
+
+## 来源: `10_流水/光与朽项目/分析-Ch2怪物音效特效接入_202603.md` · 提取日期 2026-05-17
+
+## VFX / SFX 系统优先扩展，不轻易重构
+
+当现有 `VFXPoolManager` 和 `AudioManager` 已经具备枚举、配置表、语义化方法和对象池能力时，新章节怪物接入不要急着重构。更稳的扩展模式：
+
+| 层 | 操作 |
+| --- | --- |
+| VFX 枚举 | 新增语义化类型，例如 `EnemySplit` |
+| VFX 管理器 | 新增 `PlayEnemySplit(position)` 这类业务可读方法 |
+| AudioConfig | 新增可空字段，例如 `enemySplit` |
+| AudioManager | 新增 `PlayEnemySplit()`，字段为空则静默跳过 |
+| 业务调用点 | 在 `splitOnDeath` 等特定逻辑末尾调用 VFX/SFX |
+
+低频特效可以 `usePool: false`，高频命中、击杀、爆炸才走对象池。可选音效 / 特效允许 Inspector 留空，这样美术资源没准备好时不会阻塞功能开发。
+
+未来新章节接入表现层时，优先按“枚举 + 配置 + 语义化方法 + 业务调用点”的 4 步扩展。只有当接口变得重复、概念混乱或性能不够时，再考虑重构管理器。
+
+## 来源: `10_流水/光与朽项目/分析-VolcanoBoss三项修复_202604.md` · 提取日期 2026-05-18
+
+## Boss / 复杂敌人不要把根节点当所有行为目标
+
+复杂 Boss 常见结构是 Root 挂 Rigidbody / Collider / 控制器，VisualRoot 下挂身体、特效、弱点、吸收点等视觉对象。如果所有行为都默认瞄准 Root，会出现很多“看起来像物理 bug”的问题：小怪撞到 Boss 刚体、推动 Boss、吸收点不对、特效位置漂移。
+
+更稳的做法是给关键行为建立显式目标点：
+
+| 行为 | 目标点建议 |
+| --- | --- |
+| 小怪被 Boss 吸收 | `AbsorptionPoint` 子物体，使用 Trigger |
+| 弱点命中 | 独立 WeakPoint Collider |
+| 技能发射 | Muzzle / CastPoint |
+| 特效挂点 | VFXAnchor / BodyAnchor |
+
+吸收类行为尤其要避免物理碰撞干扰：目标点使用 Trigger，吸收过程中禁用被吸收单位 Collider，移动到目标点后再播放缩放、VFX、SFX 和回收逻辑。这样既减少 Rigidbody 推挤，也让表现和数值结算绑定在同一个明确位置。
+
+## 多 Renderer 特效要做白名单或黑名单
+
+全身染色 / 冰冻 / 中毒这类效果如果自动抓取所有 `SpriteRenderer`，很容易污染特殊材质。VolcanoBoss 的 Body03 使用 WobblyLiquid HDR 橙色材质，被 FrostDebuff 蓝色 tint 乘上后变成灰绿色，这不是数值 bug，而是 Renderer 选择范围太粗。
+
+可复用规则：
+
+1. 复杂对象初始化时缓存关键 Renderer。
+2. 通用 Debuff 不要无脑作用于所有子 Renderer。
+3. 对特殊材质、液体、发光核心、UI 血条等对象建立排除列表。
+4. 只有身体主轮廓、可读受击部位进入染色目标。
+
+这类修复优先在初始化阶段过滤目标集合，少改运行期逻辑。能用白名单 / 黑名单解决的表现污染，不要升级成 Shader 重写。
+
+## 来源: `10_流水/光与朽项目/分析-真机性能优化_202604.md` · 提取日期 2026-05-19
+
+## 移动端帧率要显式设置，不要相信默认值
+
+Unity Android 默认可能锁在 30fps。如果项目里没有任何 `Application.targetFrameRate` 或 `QualitySettings.vSyncCount` 设置，真机“始终 30fps”往往不是性能不够，而是配置没打开。
+
+移动端启动阶段建议显式设置：
+
+```csharp
+Application.targetFrameRate = 60;
+QualitySettings.vSyncCount = 0;
+```
+
+排查顺序：
+
+1. 先确认是不是被默认帧率或 vSync 锁住。
+2. 再看 CPU 峰值、GC、Instantiate、Shader 首帧编译。
+3. 最后才判断机型性能不够。
+
+## 对象池预热不能集中在同一帧
+
+第二、三章进入战斗瞬间掉到 15fps 的核心原因，是 `EnemyPoolManager.InitializeForChapter()` 在同一帧同步预热 50-80 个怪物实例。对象池方向是对的，但“预热时机”错了。
+
+可复用规则：
+
+| 做法 | 结果 |
+| --- | --- |
+| 进入战斗前同帧 Instantiate 50+ 个对象 | 首帧 60-100ms，明显卡顿 |
+| 协程每帧预热 1-3 个实例 | 总等待稍长，但帧时间稳定 |
+| 先建空池，再由 WarmupCoroutine 接管 | 初始化流程可控，可显示加载/准备状态 |
+
+对象池不是性能万灵药。运行时 Spawn/Despawn 快，不代表初始化可以把所有 Instantiate 堆到一帧。
+
+## 高频流程里避免全场景搜索
+
+`FindObjectsOfType<T>()` 放在场景初始化阶段通常可接受，放在每波结算、每帧检测、战斗循环里就会变成隐性卡点。比如波次保护掉落阶段只需要知道 `TacticalDropManager.Instance.IsDropPhase`，就不该每波遍历场景里的所有 `TacticalCrate`。
+
+工程判断：
+
+1. 初始化一次：可以临时搜索。
+2. 每波 / 每秒 / 每帧：改为 Manager 状态、事件缓存或注册表。
+3. 找到对象后长期使用：缓存引用，场景切换时清理。
+
+移动端优化先抓“同帧峰值”和“循环搜索”，通常比微调小函数收益更大。
+
+## 来源: `10_流水/光与朽项目/实现-Ch2数据层_202603.md` · 提取日期 2026-05-19
+
+## 新章节怪物数据层要一次性打通“枚举到行为”
+
+Ch2 数据层实现说明：新增章节怪物不是只加几个 Prefab，而是要从类型枚举、SO 字段、运行时缓存、死亡行为、移动行为、表现开关全部打通。
+
+最小链路：
+
+| 层 | 要补的内容 |
+| --- | --- |
+| 类型层 | `EnemyType` 新增章节怪物，例如 Splitter / Tank / Exploder / Gunner / Puddle |
+| 配置层 | `EnemyData` 新增行为类型和特殊字段 |
+| 运行时层 | `EnemyBlob.LoadDataFromConfig()` 缓存字段 |
+| 行为层 | `Die()`、移动逻辑、远程 AI、静止障碍分支 |
+| 表现层 | 是否禁用白闪、是否禁用击退、是否接 VFX/SFX |
+
+特殊行为最好数据化：
+
+- 分裂死亡：`splitOnDeath`、`splitEnemyType`、`splitCount`
+- 死亡留坑：`spawnPuddleOnDeath`、`puddleEnemyType`
+- 静止障碍：`Stationary` 行为类型，强制速度为 0
+- 远程炮手：`RangedGunner` 行为类型，交给专属 AI
+- 障碍表现：`disableHitFlash`、`disableKnockback`
+
+这套模式能让后续 Ch3 / Ch4 继续扩展，而不是每章都在 `EnemyBlob` 里硬写一堆特判。
+
+## 来源: `10_流水/光与朽项目/分析-VolcanoBoss闪白效果系统_202604.md` · 提取日期 2026-05-19
+
+## 持续命中类 Shader 反馈要拆材质组并限频
+
+Boss 白闪问题的工程根因是 `CacheBodyMaterials()` 自动抓了所有 `SpriteRenderer`，导致 body01 / body02 / body03 都进入 `bodyMaterials[]`。持续激光每帧触发 `TriggerHitEffect()`，又不断把协程重置到最高强度，最终形成持续白光。
+
+技术层可复用解法：
+
+1. 不把 `GetComponentsInChildren<SpriteRenderer>()` 的结果直接当最终特效目标。
+2. 按语义拆材质组，例如 `lavaOnlyMaterials`、`allFlashMaterials`、`coreFlashMaterials`。
+3. `TriggerHitEffect()` 接受命中类型参数，决定作用哪组 Renderer。
+4. 高频命中加最小间隔，例如 0.1-0.12 秒。
+5. 峰值强度参数化，不要把 `1.0` 写死。
+
+持续武器的视觉反馈要按“可读”设计，而不是按“每次命中都触发最强反馈”实现。
