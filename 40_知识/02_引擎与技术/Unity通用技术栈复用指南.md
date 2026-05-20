@@ -8,7 +8,7 @@ domain: 02_引擎与技术
 tags: [Unity, 微信小游戏, 单例, 场景加载, 音频, 存档, 广告, UI动效, 飘字, 事件总线, 埋点, 资源管理, 工程化, 决策指南]
 updated: 2026-05-19
 last_reviewed: 2026-05-19
-review_count: 5
+review_count: 8
 ---
 
 # Unity 通用技术栈复用指南
@@ -394,3 +394,238 @@ Boss 白闪问题的工程根因是 `CacheBodyMaterials()` 自动抓了所有 `S
 5. 峰值强度参数化，不要把 `1.0` 写死。
 
 持续武器的视觉反馈要按“可读”设计，而不是按“每次命中都触发最强反馈”实现。
+
+## 来源: `10_流水/光与朽项目/实现-Ch3Boss极寒之核Unity接入文档_202604.md` · 提取日期 2026-05-19
+
+## Unity 接入文档要记录隐藏依赖
+
+复杂技能的失败经常不在 C#，而在 Unity 编辑器侧：Prefab 层级、Layer、Tag、Inspector 引用、Database 注册少一个，代码就会表现成“偶发失效”。
+
+GlacialBoss 接入暴露的关键隐藏依赖：
+
+| 依赖 | 工程含义 |
+| --- | --- |
+| `BossPollutionBall` Layer | 让激光检测冰刺投射体，形成可反制对象 |
+| Tower / Shield Tag | 区分命中塔本体还是护盾 |
+| LineRenderer `Use World Space` | 脚本用世界坐标设置射线端点时必须开启 |
+| EnemyDatabase 注册 | `EnemyData.asset` 存在不等于 `GetData()` 能找到 |
+| Inspector 数组引用 | BingCi 位置和 Renderer 数组必须一一对应 |
+
+可复用习惯：每个复杂技能都配一份“接入清单 + 测试清单”，把代码外依赖写到文档里。尤其是 Layer / Tag / Database / Inspector 引用，这些最容易在迁移 Prefab 或新建场景时漏掉。
+
+## 来源: `10_流水/光与朽项目/实现-Ch3数据层_202603.md` · 提取日期 2026-05-19
+
+## 新章节行为系统要用“组件专责 + EnemyData 配置”扩展
+
+Ch3 数据层比 Ch2 更复杂：它不是多几个怪物，而是多了催化暴走、霜冻施法者、前置冰盾、静止单位自动消失四套行为。更稳的结构是：通用字段放 `EnemyData`，专属行为放独立组件，`EnemyBlob` 只负责串联生命周期。
+
+| 行为系统 | 推荐承载 |
+| --- | --- |
+| 催化暴走 | `EnemyBlob.ApplyBerserk()` + 死亡触发 |
+| 施法者召唤冰墙 | `FrostcasterAI` 独立状态机 |
+| 前置冰盾 | `IceShieldController` 管理护盾 HP 与显隐 |
+| 静止单位自动消失 | `EnemyData.autoDestroyTime` + Stationary 分支 |
+
+`EnemyBlob` 可以负责 `OnSpawn` 重置、`OnDespawn` 清理、`TakeDamage` 转发，但不要把所有机制都堆成一个巨大类。否则后续每章都会在同一个文件里加新分支，难以维护。
+
+## 来源: `10_流水/光与朽项目/实现-FrostcasterAI重构_202604.md` · 提取日期 2026-05-19
+
+## 相近 AI 行为要复用通用字段，保留专属字段
+
+FrostcasterAI 重构把 `frostcasterStopYPercent`、`frostcasterCastInterval` 删除，改用远程怪通用字段 `gunnerStopYPercent`、`gunnerShootInterval`，同时保留施法者专属的 `frostcasterIceWallCount`、`frostcasterRandomWallCount`、`frostcasterIceWallType`。
+
+这是一个很好的折中：
+
+| 字段类型 | 处理方式 |
+| --- | --- |
+| 入场停驻位置、行为间隔、离塔距离、换位范围 | 远程怪共用 |
+| 召唤冰墙数量、随机数量、冰墙类型 | Frostcaster 专属 |
+
+共用字段减少配置重复，专属字段保留机制表达力。不要为了复用把所有远程怪揉成同一种行为，也不要每个怪都复制一套几乎一样的参数。
+
+## 频繁施法敌人要用平滑换位制造预判
+
+Frostcaster 的 `castInterval = 2s` 很短，如果每次施法后瞬移，会让画面变乱，玩家也难以形成策略。改成 `Entering → Charging → Casting → Repositioning → Charging` 的平滑状态机后，移动本身变成了两次施法之间的可读间隙。
+
+AI 表现规则：
+
+1. 高频行为不要瞬移，优先平滑移动。
+2. 施法前要有蓄力或发光，让玩家能预判。
+3. 施法后允许短暂复位或换位，制造节奏。
+4. 精英版可以降低换位范围、拉长间隔，用更强效果替代更频繁骚扰。
+
+## 来源: `10_流水/光与朽项目/实现-精英冰甲卫士冰盾系统_202604.md` · 提取日期 2026-05-19
+
+## 护盾类敌人要把伤害结算和穿透路径分开
+
+EliteIceShieldGuard 的冰盾机制不是简单“多一条血”，而是同时改变三件事：伤害折扣、击退衰减、激光穿透阻断。工程上要把这三层分别接好。
+
+| 层 | 做法 |
+| --- | --- |
+| 伤害结算 | 冰盾存在时伤害先打 `IceShieldController`，可配置 50% 折扣 |
+| 物理反馈 | 冰盾存在时仍可轻微击退，但推力衰减，例如只保留 20% |
+| 激光路径 | 命中冰盾后 `break` 穿透循环，不再击中后方目标 |
+
+关键接口是给敌人暴露 `HasActiveIceShield` 这类只读语义属性，让 `LaserController` 能判断“这次命中是否应该截断射线”。不要让激光系统去猜某个 prefab 是否有盾，也不要把护盾判断硬编码到 enemy type。
+
+## 来源: `10_流水/光与朽项目/Project_Diary.md` · 提取日期 2026-05-19
+
+## Inactive 起步的 UI 组件要防 Awake / Show 竞态
+
+`TutorialSpotlightOverlay` 的真机/编辑器问题说明：Unity 中 inactive 的 GameObject 在 `SetActive(true)` 时会同步触发 `Awake()`。如果 `Awake()` 末尾又有自隐藏逻辑，`Show()` 刚激活它，它就会把自己关掉。
+
+可复用处理：
+
+1. `Show()` 在 `SetActive(true)` 前设置 `_showRequested` 之类的标志。
+2. `Awake()` 检查这个标志，跳过初始化期自隐藏。
+3. `SetActive(true)` 返回后再复位标志。
+
+所有“场景中默认 inactive，但运行时由代码 Show”的 UI 组件都要防这个竞态，尤其是新手引导、遮罩、弹窗和教程聚光灯。
+
+## Shader 缺失时不要让交互判定一起失效
+
+真机上 `UI/HoleMask` Shader 如果未加入 Always Included Shaders，`Shader.Find()` 可能返回 null。错误做法是因为 Material 为 null 就提前 return，导致孔洞坐标也不更新，最终点击穿透判定失效，遮罩拦截所有触摸。
+
+更稳的结构是把“交互几何计算”和“Shader 属性写入”解耦：
+
+| 职责 | 即使 Shader 缺失也应执行？ |
+| --- | --- |
+| 目标 Rect 转屏幕坐标 | 是 |
+| `_holeScreenCenter` / `_holeScreenHalfSize` 更新 | 是 |
+| `IsRaycastLocationValid` 点击判定 | 是 |
+| Material 属性赋值 | 否，Material 存在时才写 |
+
+这样即使视觉降级，点击逻辑仍然可用，不会把玩家锁死在黑色遮罩上。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-03-30.md` · 提取日期 2026-05-19
+
+## 单 GameScene 多章节要按 ChapterConfig 动态绑定
+
+《光与朽》第二章背景、Boss、波次和对象池多次错用第一章配置，根因不是“需要多个 GameScene”，而是单场景内章节配置绑定不完整。
+
+更稳的架构是保留一个 `GameScene`，在进入战斗时从 `ChapterConfig` 动态绑定：
+
+| 内容 | 动态来源 |
+| --- | --- |
+| 背景图 | `ChapterConfig.battleBackgroundImage` |
+| 波次表 | `ChapterConfig.waveConfig` |
+| Boss Prefab | `ChapterConfig.bossPrefab` |
+| 关卡标题 | 当前章节号 / 难度 |
+| 对象池 | `EnemyPoolManager.InitializeForChapter(chapterIndex)` |
+
+不要在场景 Inspector 里长期硬绑某一章的 Boss 或波次，把它们当作 fallback 即可。多章节项目复制多个战斗场景会带来同步成本：UI、相机、管理器、修复补丁都要改多份。
+
+## 对象生成要统一入口，用配置区分池化策略
+
+早期 `WaveManager` 同时维护 Boss Prefab、精英怪 Prefab、普通怪对象池，导致新增 Ch2 精英怪时漏注册。更稳的做法是：`WaveManager` 只调用统一生成接口，`EnemyPoolManager` 根据配置决定是否池化。
+
+| 类型 | usePool | 理由 |
+| --- | --- | --- |
+| 普通怪 | true | 高频生成 / 回收，需要预热和复用 |
+| 精英怪 | false | 数量少，Instantiate / Destroy 成本可接受 |
+| Boss | false | 通常一只，语义上不需要对象池 |
+
+统一入口的价值不是“所有东西都进对象池”，而是“所有生成配置都在一个地方”。以后新增章节，只补 `EnemyPoolConfig`，不要再改 `WaveManager` 字段。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-03-31.md` · 提取日期 2026-05-19
+
+## Stationary 障碍物要彻底拆开物理、战斗和波次语义
+
+LavaPuddle / IceWall 这类 Stationary 对象的定义是“场景障碍”，不是普通敌人。它要阻挡激光，但不能阻挡怪物，不能吃状态，不能掉经验，也不能卡波次。
+
+可复用语义表：
+
+| 系统 | Stationary 规则 |
+| --- | --- |
+| 物理碰撞 | Collider 设为 Trigger，让怪物可穿过 |
+| 激光 Raycast | `queriesHitTriggers = true` 时仍能被射线命中，继续阻挡激光 |
+| 伤害结算 | `TakeDamage()` 直接 return，不抖动、不缩小、不掉经验 |
+| 状态效果 | 冰冻、减速、变色、中毒等入口直接豁免 |
+| 波次完成 | 不计入 `TotalActiveEnemies`，不占 global enemy limit |
+| 连锁 / 自动索敌 | 不作为起点、跳点或目标 |
+
+实现时不要只处理 `CircleCollider2D`，要遍历所有 `Collider2D`。LavaPuddle 使用 PolygonCollider2D 时，只改 CircleCollider 会完全不生效。
+
+## 死亡流程不要用死因早返回跳过副作用
+
+自爆怪被其他爆炸炸到时，曾因为 `killedByExplosion` 标记过早和 `Die()` 早返回，导致特效、水坑、AoE 全部被跳过。正确做法是只在“爆炸伤害致死”时标记死因，并且死因只影响某些表现，不应该直接跳过所有死亡副作用。
+
+死亡流程设计规则：
+
+1. 死因标记要在确认致死后再写。
+2. 自爆怪无论被什么杀死，都应执行自己的爆炸 / 留坑逻辑，除非明确设计禁止连锁。
+3. 普通怪被爆炸杀死可以跳过重复蒸汽 VFX，但不能跳过回收、掉落、统计等必要流程。
+4. `return` 放在死亡流程中段很危险，最好把“是否播放某个表现”做成局部条件。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-02.md` · 提取日期 2026-05-19
+
+## 数据配置和组件契约必须一致
+
+Frost_Catalyst 的实际问题不是移动代码坏了，而是 `behaviorType` 配成了 `FrostCaster`，但 Prefab 上没有 `FrostcasterAI`。运行时 EnemyBlob 把行为交给专属 AI 后，刚体无人驱动，怪物就静止不动。
+
+新怪物配置要把“数据枚举”和“组件存在”当成一条契约检查：
+
+| 配置 | 必须对应 |
+| --- | --- |
+| `Chase` | EnemyBlob 自身能驱动移动和基础攻击 |
+| `RangedGunner` / `FrostCaster` | Prefab 上必须挂对应 AI 组件 |
+| `Stationary` | 伤害、波次、碰撞和奖励语义都要按障碍物处理 |
+| 特殊死亡效果 | `isCatalyst`、`splitOnDeath`、`spawnPuddleOnDeath` 等开关必须同步 |
+
+特殊数值效果和特殊视觉效果要分开。Catalyst 暴走可以由数值逻辑统一生效，但冰刺覆盖这类表现组件应手动挂载，不要运行时自动给所有怪注入组件；否则会失去 Prefab 级美术控制。
+
+## 非池化 Instantiate 也必须走生成生命周期
+
+对象池路径通常会调用 `OnSpawn()`，但精英怪 / Boss 常常走 `usePool = false` 的 Instantiate 路径。EliteIceShieldGuard 的冰盾未初始化，根因就是非池化生成后没有补调用 `enemy.OnSpawn()`。
+
+统一规则：
+
+1. 不管对象来自 Pool 还是 Instantiate，都必须进入同一套 `OnSpawn()` 初始化。
+2. `OnSpawn()` 负责重置护盾、显隐、状态、计时器、材质、AI 状态和动态注册。
+3. `OnDespawn()` / Destroy 前负责注销 tracker、清理状态和停止协程。
+4. 低频对象可以不进池，但不能绕开生命周期。
+
+这类 bug 表面像某个机制没挂好，实际是生成路径分叉导致初始化遗漏。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-06.md` · 提取日期 2026-05-19
+
+## 通用爆炸反馈要语义化，但保留 Prefab 内置特效优先级
+
+Projectile 爆炸反馈适合统一到 `VFXPoolManager` / `AudioManager` 的语义接口，例如 `PlayProjectileExplosion()`，让 Ch1 污染球、Ch2 熔岩弹、陨石、Ch3 冰刺都能复用同一套表现入口。
+
+但统一不等于强行覆盖。BossPollutionProjectile 已经自带 `explosionParticle` 时，通用 VFX 只应在“没有内置特效”的情况下兜底播放，避免同一颗子弹死亡时双重爆炸。
+
+可复用接入顺序：
+
+1. 给 VFX / SFX 新增语义枚举和 `PlayXxx()` 方法。
+2. 高频爆炸走池化，低频一次性 UI / Boss 警告可直接 Instantiate 或 Animator。
+3. 业务脚本只调用语义方法，不关心具体 Prefab。
+4. 如果旧 Prefab 已有局部特效，先保留局部优先级，再逐步迁移。
+
+## 一次性 UI 警告交给 Animator，代码只触发状态
+
+Boss 警告 UI 这类“一次性、强表现、设计师想调时间”的序列，不适合把所有缩放、透明度、停留时长都写进 Coroutine。更稳的方式是：
+
+| 职责 | 放哪 |
+| --- | --- |
+| 何时出现 | 代码，例如第 10 波开始 |
+| 动画节奏 | Animator |
+| 音效触发 | 代码或 Animation Event，按项目习惯统一 |
+| 播完隐藏 | Animator 末尾事件或协程等待动画时长 |
+
+代码只负责触发语义状态，Animator 负责可编辑的表现时间线。这样后续改警告节奏不用反复改脚本。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-09.md` · 提取日期 2026-05-19
+
+## 可视化充能要用 Inspector 列表，并在 OnSpawn 复位
+
+Frostcaster 从“无限施法怪”改成“身体水晶代表剩余施法次数”后，工程上最稳的做法不是按子物体名字查找，而是暴露 `crystals` 列表由 Inspector 明确配置。
+
+实现规则：
+
+1. 每次施法隐藏一个水晶，视觉状态和剩余次数一一对应。
+2. `OnSpawn()` 恢复所有水晶，避免对象复用后残留上一轮状态。
+3. 预留 `OnCrystalExpended()` 这类虚方法或事件钩子，方便后续加水晶爆裂 VFX。
+4. 精英版只是更多 charge / crystal，不要复制一套 AI。
+
+当机制有“剩余次数”时，视觉资源本身就是 UI。让玩家看到还剩几颗水晶，比让他数施法次数可靠得多。

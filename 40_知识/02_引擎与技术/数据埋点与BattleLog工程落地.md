@@ -8,7 +8,7 @@ source_page: 20_项目/02_光与朽项目/01_策划文档/光与朽_数据埋点
 domain: 02_引擎与技术
 tags: [数据埋点, BattleLog, 微信场景分析, IAA埋点, AnalyticsManager, 工程化]
 last_reviewed: 2026-05-19
-review_count: 3
+review_count: 4
 ---
 
 # 数据埋点与 BattleLog 工程落地
@@ -366,3 +366,18 @@ Ch3 缺少 `Kill_FrostGunner` / `Spawn_FrostGunner` 字段，只能从 `Kill_Tot
 2. `Total` 只做总量校验，不做核心单位分析。
 3. 新增 EnemyType 时同步补 BattleLog 字段，不等数据出问题再补。
 4. 动态对象既要统计总生成，也要统计峰值数量，避免只知道“总量很多”却不知道同屏压力。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-07.md` · 提取日期 2026-05-19
+
+## Boss 技能重命名后要同步埋点语义
+
+Ch2 Boss 技能从 Meteor / LavaProjectile 调整为火球等新表现后，BattleLog 字段不能只沿用旧名字。比如 `Boss_Meteor_Count` 如果实际记录的是火球命中，就会让后续分析误判技能来源。
+
+字段维护规则：
+
+1. 技能表现或玩法语义变化时，同步检查字段名、导出列名和分析表头。
+2. 新增“发射次数 / 被拦截次数 / 命中次数”三类字段时，优先尾部追加，保持历史 CSV 兼容。
+3. 子弹脚本和 Boss 控制器都要插桩：控制器记录发射，Projectile 记录命中/拦截。
+4. 字段名宁可长一点，也要表达真实机制，例如 `bossFireballBurstCount`、`bossFireballInterceptedCount`。
+
+埋点字段是策划语言的一部分。字段名过期，数据就会开始撒谎。
