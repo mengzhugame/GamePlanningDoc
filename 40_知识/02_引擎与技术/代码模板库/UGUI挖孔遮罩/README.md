@@ -20,7 +20,7 @@ SDF Shader 单图层挖孔方案，适用于新手引导「聚光灯/高亮」�
 |------|------|
 | `UIHoleMask.shader` | SDF 挖孔 Shader（放入项目 `Assets/Shaders/` 目录） |
 | `HoleMaskController.cs` | 遮罩控制器，管理 Shader 参数 + C# 点击检测 |
-| `HoleMaskClickBlocker.cs` | 点击穿透组件，孔洞内穿透/孔洞外拦截 |
+| `HoleMaskClickBlocker.cs` | 基于 `ICanvasRaycastFilter` 的点击穿透组件，孔洞内穿透/孔洞外拦截 |
 
 ---
 
@@ -68,6 +68,7 @@ holeMask.HideHole();
 | `maskColor` | `(0,0,0,0.8)` | 遮罩颜色和不透明度 |
 | `cornerRadius` | `20f` (像素) | 挖孔圆角半径 |
 | `holePadding` | `(20,20)` (像素) | 挖孔区域在目标四周的扩展边距 |
+| `holeShape` | `RoundedRect` | 孔洞形状：`Rect` / `RoundedRect` / `Circle` |
 
 ### Shader 参数（运行时由脚本自动设置）
 
@@ -76,6 +77,7 @@ holeMask.HideHole();
 | `_HoleCenter` | Vector2（归一化） | 孔洞中心（屏幕坐标归一化） |
 | `_HoleSize` | Vector2（归一化） | 孔洞宽高（归一化） |
 | `_CornerRadius` | Float（归一化） | 圆角半径（归一化） |
+| `_HoleShape` | Float | 0=直角矩形，1=圆角矩形，2=正圆 |
 | `_Color` | Color | 遮罩颜色 |
 
 ---
@@ -83,11 +85,15 @@ holeMask.HideHole();
 ## 运行时调试
 
 在 Inspector 中勾选 `Enable Runtime Debug`，即可在 Play 模式实时拖动以下参数观察效果：
+- `debugTarget`：拖入任意 RectTransform，孔洞自动对齐目标
+- `debugPadding`：实时调整目标四周边距
+- `debugCornerRadiusPixels`：实时调整像素圆角
+- `debugHoleShape`：切换直角矩形 / 圆角矩形 / 正圆
 - `debugHoleCenter`：调整孔洞位置
 - `debugHoleSize`：调整孔洞大小
 - `debugCornerRadius`：调整圆角
 
-调试完毕后，使用右键菜单「复制当前参数到调试字段」可将自动计算的结果固化。
+如果只想调某个真实按钮，优先使用 `debugTarget + debugPadding + debugCornerRadiusPixels`。调好后把数值填入对应 `TutorialStepConfigSO` 的 `holePadding` / `cornerRadius` / `holeShape`。
 
 ---
 
@@ -97,6 +103,9 @@ holeMask.HideHole();
 2. **Canvas 模式**：Screen Space - Overlay 和 Screen Space - Camera 均支持，World Space 未测试。
 3. **Material 实例**：`HoleMaskController` 在运行时通过 `new Material(shader)` 创建实例，不会影响共享 Material。`OnDestroy` 会自动清理。
 4. **多遮罩**：可以同时存在多个 HoleMaskController 实例，各自独立计算，互不干扰。
+5. **点击穿透必须用 `ICanvasRaycastFilter`**：不要用 `IPointerClickHandler` 在回调里 return。回调阶段射线已经被遮罩吃掉，下层按钮不会再收到事件。
+6. **点击检测用像素坐标**：Shader 可以吃归一化参数，但 C# 的 `IsRaycastLocationValid` 收到的是屏幕像素坐标。C# SDF 应直接用像素空间，避免 Canvas Scaler 下“视觉洞里点不到”的误差。
+7. **手指 / 光圈 Prefab 要关闭 raycastTarget**：引导特效如果是 UI Image，默认会挡住孔洞里的按钮。实例化后用 `GetComponentsInChildren<Graphic>(true)` 递归关闭所有 `raycastTarget`。
 
 ---
 
@@ -117,10 +126,10 @@ TutorialStepConfigSO (ScriptableObject)
 
 TutorialDirector (MonoBehaviour)
   ├── 每步：ShowStep(config, target)
-  │     ├── HoleMaskController.Show(target, config.holePadding)
+  │     ├── HoleMaskController.SetHoleTarget(target, config.holePadding, config.cornerRadius, config.holeShape)
   │     └── 实例化手指 Prefab，定位到 target 旁边
   └── 完成：ClearStep()
-        ├── HoleMaskController.Hide()
+        ├── HoleMaskController.HideHole()
         └── Destroy 手指 Prefab
 ```
 
@@ -137,6 +146,8 @@ public class TutorialStepConfigSO : ScriptableObject
     public Vector3 localScale    = Vector3.one;
     public bool    useSpotlightOverlay = true;
     public Vector2 holePadding   = new Vector2(24f, 24f);
+    public float   cornerRadius  = 20f;
+    public HoleShape holeShape   = HoleShape.RoundedRect;
     [TextArea(1, 3)]
     public string  overlayMessage;
 }
@@ -151,9 +162,9 @@ private void ShowStep(TutorialStepConfigSO config, RectTransform target)
 
     // 1. SDF 挖孔遮罩
     if (config != null && config.useSpotlightOverlay && holeMask != null)
-        holeMask.Show(target, config.overlayMessage, config.holePadding);
+        holeMask.SetHoleTarget(target, config.holePadding, config.cornerRadius, config.holeShape);
     else
-        holeMask?.Hide();
+        holeMask?.HideHole();
 
     // 2. 手指特效 Prefab
     DestroyFingerObject();
@@ -163,7 +174,7 @@ private void ShowStep(TutorialStepConfigSO config, RectTransform target)
 
 private void ClearStep()
 {
-    holeMask?.Hide();
+    holeMask?.HideHole();
     DestroyFingerObject();
 }
 
@@ -181,39 +192,31 @@ private void SpawnFingerPrefab(TutorialStepConfigSO config, RectTransform target
     var rect = _fingerObj.transform as RectTransform;
     if (rect != null)
     {
-        // 与 target 同父时，以 target 的 anchoredPosition 为基准
-        if (target.parent == parent)
-            rect.anchoredPosition = target.anchoredPosition + (Vector2)config.localPosition;
+        // 用目标视觉包围盒中心定位，兼容左上角锚点 / 右上角锚点等非中心 pivot。
+        Vector3[] corners = new Vector3[4];
+        target.GetWorldCorners(corners);
+        Vector3 worldCenter = (corners[0] + corners[2]) * 0.5f;
+
+        var parentRect = parent as RectTransform;
+        var canvas = target.GetComponentInParent<Canvas>()?.rootCanvas;
+        Camera cam = canvas != null ? canvas.worldCamera : null;
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(cam, worldCenter);
+        if (parentRect != null &&
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRect, screenPoint, cam, out var localPoint))
+        {
+            rect.anchoredPosition = localPoint + (Vector2)config.localPosition;
+        }
         else
-            rect.localPosition = config.localPosition;
+        {
+            rect.position = worldCenter + config.localPosition;
+        }
+
         rect.localScale = config.localScale;
     }
-}
-```
 
-### HoleMaskController 需增加的接口
-
-在 `HoleMaskController.cs` 中增加带 `padding` 和 `message` 的 `Show` 重载：
-
-```csharp
-/// <summary>
-/// 显示挖孔遮罩，聚焦 target，自动跟踪位置
-/// </summary>
-public void Show(RectTransform target, string message = null, Vector2? padding = null, bool track = true)
-{
-    if (target == null) return;
-    _target   = target;
-    _padding  = padding ?? holePadding;
-    _tracking = track;
-    UpdateHoleShader();
-    SetMessage(message);
-    gameObject.SetActive(true);
-}
-
-public void Hide()
-{
-    _target = null;
-    gameObject.SetActive(false);
+    // 引导特效本身不能挡住孔洞里的按钮。
+    foreach (var graphic in _fingerObj.GetComponentsInChildren<Graphic>(true))
+        graphic.raycastTarget = false;
 }
 ```
 
@@ -240,30 +243,40 @@ public void Hide()
 
 ### 点击穿透配置
 
-`HoleMaskClickBlocker`（或直接在 `HoleMaskController` 内实现 `IPointerClickHandler`）：
+`HoleMaskClickBlocker` 必须实现 `ICanvasRaycastFilter`，让孔洞在射线检测阶段穿透：
 
 ```csharp
-public void OnPointerDown(PointerEventData eventData)
+public bool IsRaycastLocationValid(Vector2 sp, Camera eventCamera)
 {
-    // 点击在孔洞内 → 穿透
-    if (IsPointInHole(eventData.position)) return;
+    // false = 当前遮罩不接收射线，下层按钮继续参与 GraphicRaycaster 检测
+    if (_maskController != null && _maskController.IsPointInHole(sp))
+        return false;
 
-    // 点击在遮罩区域 → 拦截
-    eventData.Use();
-}
-
-private bool IsPointInHole(Vector2 screenPoint)
-{
-    // 与 Shader 完全一致的 C# SDF 镜像
-    Vector2 uv   = new Vector2(screenPoint.x / Screen.width, screenPoint.y / Screen.height);
-    Vector2 diff = uv - _holeCenter;
-    float   dist = RoundedBoxSDF(diff, _holeSize * 0.5f, _cornerRadius);
-    return dist < 0f;
-}
-
-private static float RoundedBoxSDF(Vector2 p, Vector2 halfSize, float r)
-{
-    Vector2 q = new Vector2(Mathf.Abs(p.x), Mathf.Abs(p.y)) - halfSize + new Vector2(r, r);
-    return Mathf.Min(Mathf.Max(q.x, q.y), 0f) + new Vector2(Mathf.Max(q.x, 0f), Mathf.Max(q.y, 0f)).magnitude - r;
+    // true = 孔洞外由遮罩接收射线，拦截误触
+    return true;
 }
 ```
+
+`IsPointInHole` 使用像素坐标：
+
+```csharp
+private bool IsPointInHole(Vector2 screenPoint)
+{
+    Vector2 diff = screenPoint - _holeScreenCenter;
+    float dist = RoundedBoxSDF(diff, _holeScreenHalfSize, _cornerRadiusPixels);
+    return dist < 0f;
+}
+```
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-14.md` · 提取日期 2026-05-20
+
+## 光与朽实战补充：引导遮罩四个高频坑
+
+| 坑 | 现象 | 修法 |
+| --- | --- | --- |
+| inactive 遮罩节点 `Awake()` 自隐藏 | `Show()` 激活后立刻又被关掉 | `Show()` 懒初始化，`Awake()` 不强制 `SetActive(false)` |
+| 面板刚打开就读坐标 | 孔洞或手指在错误位置 | 事件后 `yield return null` 等 Layout rebuild |
+| 目标按钮锚点不在中心 | 返回按钮等左上锚点 UI 指向偏移 | 用 `GetWorldCorners()` 算视觉中心，不直接用 `target.position` |
+| 手指 / 光圈挡点击 | 孔洞正确但按钮难点 | 实例化后递归关闭所有子 `Graphic.raycastTarget` |
+
+配置驱动的新手引导，必须同时提供“孔洞调试”和“手指偏移调试”。两者属于不同对象：遮罩组件调洞，TutorialDirector 调手指。

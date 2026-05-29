@@ -3,12 +3,12 @@ type: knowledge
 status: review
 created: 2026-04-29
 source_book: 代码模板库 14 个模板（MZ02 + LightVSDecay 双项目提取）
-source_page: 40_知识/02_引擎与技术/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md
+source_page: 40_知识/02_引擎与技术/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md; 10_流水/光与朽项目/Claude-2026-04-16.md; 10_流水/光与朽项目/Claude-2026-04-17.md; 10_流水/光与朽项目/Claude-2026-04-18.md
 domain: 02_引擎与技术
 tags: [Unity, 微信小游戏, 单例, 场景加载, 音频, 存档, 广告, UI动效, 飘字, 事件总线, 埋点, 资源管理, 工程化, 决策指南]
-updated: 2026-05-19
-last_reviewed: 2026-05-19
-review_count: 8
+updated: 2026-05-23
+last_reviewed: 2026-05-23
+review_count: 20
 ---
 
 # Unity 通用技术栈复用指南
@@ -257,6 +257,43 @@ Unity 数据驱动项目里，`EnemyData.asset` 存在不等于怪物能生成�
 3. 静态障碍、炮手、分裂怪等特殊行为要检查 `behaviorType`，不要沿用 Chase 默认值。
 4. 子体生成字段要检查章节一致性，避免 Ch2 怪分裂出 Ch1 怪。
 5. 对“无怪物出现”这类问题，先查数据注册和 Pool 注册，再查 AI 逻辑。
+
+## 来源: `10_流水/Openclaw知识库文件/code_analysis_report.md` · 提取日期 2026-05-26
+
+## 双项目扫描说明：模板库优先提 Core，不急着提玩法专属
+
+早期对《光与朽》和《美妆叠叠乐》的代码扫描确认了一个提取顺序：先提跨项目必用的 Core 层，再提管理器和表现系统，最后才考虑玩法绑定模块。
+
+第一批高复用模块：
+
+| 模块 | 复用价值 | 已沉淀位置 |
+| --- | --- | --- |
+| Singleton / PersistentSingleton | 所有 Manager 依赖 | [[代码模板库/02_SingletonPattern]] |
+| GameEvents | Manager 解耦和 UI 监听 | [[代码模板库/11_GameEvents]] |
+| ObjectPool / IPoolable | 怪物、子弹、飘字、金币 | 代码模板库候选 / 后续抽取 |
+| GameLogger | Debug 日志开关和格式统一 | [[代码模板库/01_GameLogger]] |
+
+不要一开始就把 `WaveManager`、`SkillSystem`、装备、订单包、堆叠逻辑这类玩法专属系统抽成“通用模板”。它们复用前要等下一款同类项目验证，否则会把旧项目假设带进新项目。
+
+## 巨型控制器要拆职责，但不要为了拆而拆
+
+源报告指出 `LaserController` 这类 1000+ 行控制器容易承担过多职责：伤害、击退、暴击、扩散、穿透、音效、VFX 等都塞在一个类里。拆分方向可以是：
+
+| 职责 | 候选组件 |
+| --- | --- |
+| 伤害与倍率 | `LaserDamageHandler` |
+| 击退 / 控制 | `LaserKnockback` |
+| 暴击 / 弱点 | `LaserCritSystem` |
+| 元素扩散 | `LaserFrostSpread` |
+| 音效与反馈 | `LaserAudio` / `LaserFeedback` |
+
+但拆分要服务验证和稳定，不要在上线前做大规模“好看式重构”。更稳的顺序是先为巨型类写接入清单和回归点，再从最独立、最少耦合的职责开始拔出。
+
+## 魔法数字和调试日志是最容易拖垮复用的两类小债
+
+- 高频调试日志应通过 `GameLogger` 或条件编译控制，正式包不能留下大量 `Debug.Log`。
+- 半径、倍率、间隔、冷却等配置如果会被策划调，优先进 ScriptableObject，不要散在 const 里。
+- 两个项目的基础设施如果实现不一致，优先统一到更完整、更安全的版本，再进入模板库。
 
 这类 bug 的危险点是“不一定报错”：系统可能静默跳过生成，导致开发者误判为波次逻辑或场景问题。
 
@@ -629,3 +666,901 @@ Frostcaster 从“无限施法怪”改成“身体水晶代表剩余施法次�
 4. 精英版只是更多 charge / crystal，不要复制一套 AI。
 
 当机制有“剩余次数”时，视觉资源本身就是 UI。让玩家看到还剩几颗水晶，比让他数施法次数可靠得多。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-10.md` · 提取日期 2026-05-20
+
+## 状态增益要作用到真实威胁源
+
+Catalyst 暴走最初只提高怪物移动速度，但 Frostcaster 和 FrostGunner 的主要威胁不在移动，而在施法 / 射击频率。如果暴走不影响 AI 计时器，玩家会觉得“它暴走了，但威胁没变”。
+
+实现状态增益时要按敌人职责分层：
+
+| 敌人类型 | 暴走应影响 |
+| --- | --- |
+| 近战 / 冲塔怪 | 移动速度、碰撞伤害 |
+| 施法怪 | 蓄力时间、施法间隔、召唤频率 |
+| 炮手 | 射击间隔、弹速或命中压力 |
+| 障碍物 | 不套普通暴走，改为专属效果，例如孵化加速 |
+
+通用 buff 不应只改一组基础属性。它要命中这个单位真正制造压力的那条链路。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-14.md` · 提取日期 2026-05-20
+
+## UI 引导定位要等布局完成，并持续跟踪目标
+
+科技树升级按钮的挖孔位置曾经错误，根因是 DetailPanel `SetActive(true)` 后同帧触发事件，Canvas Layout 还没 rebuild，`GetWorldCorners()` 读到旧坐标。另一个问题是手指只定位一次，后续目标修正后手指不跟随。
+
+UI 引导定位规则：
+
+1. 面板刚激活后，至少 `yield return null` 等一帧再读目标 RectTransform。
+2. 目标中心用 `GetWorldCorners()` 算视觉包围盒中心，不直接用 `target.position`，否则左上锚点按钮会偏。
+3. 手指 Prefab 挂到 TutorialDirector 或统一层级，不挂到目标按钮下。
+4. 正常模式也要每帧跟踪目标，debug 只是额外加偏移，不应决定是否更新。
+5. 位置偏移写进配置，例如 `localPosition`，并提供运行时调参字段。
+
+UI 引导的坐标 bug 很少是“数学错一行”，更多是布局时机、锚点、父节点和 Canvas 坐标系没有统一。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-16.md` · 提取日期 2026-05-20
+
+## HapticFeedback 适合做成低频事件服务，而不是散落调用
+
+移动端震动系统的工程结构建议拆成两层：
+
+| 层 | 职责 |
+| --- | --- |
+| `HapticFeedback` | 平台封装、默认开关、Android SDK 分支、节流 |
+| `BattleHapticController` | 订阅战斗事件，把护盾破碎、Boss 入场、阶段切换等转成震动 |
+
+这样业务脚本不需要到处写 AndroidJavaObject，也不需要知道权限、SDK 版本或玩家开关。新项目可复用的接口只保留 `Trigger(HapticType.Heavy)` / `TriggerRaw(ms)` 这类语义调用。
+
+注意两点：
+
+1. 高频事件必须有节流 key，比如护盾受击不能每帧震。
+2. 可选震动必须走 PlayerPrefs 持久化，默认开启，但设置里可关闭。
+
+## Boss 演出 VFX 要自动销毁，并在未配置时显式警告
+
+Boss 入场黑线特效这类低频演出，不一定需要进对象池，但必须有生命周期管理。常见风险是 Instantiate 后不销毁，场景里累积空对象；或者 Inspector 漏拖预制体时静默跳过，排查成本很高。
+
+可复用处理：
+
+1. 先读 Inspector 字段，允许章节 Boss 覆盖专属特效。
+2. 未配置时可用 `Resources.Load` 提供默认兜底，但要打 Warning。
+3. 实例化后读取 ParticleSystem 总时长，按真实时长 Destroy。
+4. 粒子配置问题要给检查清单：Sorting Layer、Order、Start Size、Duration、Material。
+
+演出特效的工程目标是“漏配能看见、播完能回收、不同章节可覆盖”。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-17.md` · 提取日期 2026-05-20
+
+## Unity Android 不要用主 AndroidManifest 去“追加权限”
+
+在团结 / Unity Android 工程里，`Assets/Plugins/Android/AndroidManifest.xml` 不是简单追加配置，它可能成为 `tuanjieLibrary` 模块的主 manifest，改变 Unity 生成图标资源的解析路径，导致桌面图标消失。
+
+给权限的稳妥方式：
+
+| 方式 | 适用 | 风险 |
+| --- | --- | --- |
+| `IPostGenerateGradleAndroidProject` 后处理脚本 | 推荐，生成 Gradle 工程后注入权限 | 不干扰 Unity 图标生成 |
+| 极简 `.androidlib` 只放权限 | 可选 | 仍需确认 manifest 合并不影响图标 |
+| 直接放 `Assets/Plugins/Android/AndroidManifest.xml` | 不推荐 | 容易替换主 manifest，引发图标 / 合并问题 |
+
+权限注入的安全顺序是：Unity 先生成完整 Gradle 工程和图标资源，后处理脚本再读取最终 manifest，检查缺少的 `<uses-permission>` 并插入。
+
+这条经验不只适用于 `VIBRATE`，后续相机、存储、通知权限也应优先走后处理脚本，而不是手写主 manifest。
+
+## AutoSingleton 适合“可按需出现”的服务，但要懂生命周期
+
+`HapticFeedback.Instance?.Trigger(...)` 如果继承普通 `Singleton<T>`，而场景里没有挂载组件，`Instance` 会一直是 null，空安全调用会静默跳过，真机就完全没有震动。
+
+这类服务更适合 `AutoSingleton<T>`：
+
+| 场景 | 推荐 |
+| --- | --- |
+| 必须从 Bootstrap 常驻、跨场景保存 | `PersistentSingleton` |
+| 场景内必须由设计师摆放 | `Singleton` |
+| 第一次调用时自动创建即可 | `AutoSingleton` |
+
+震动这类轻服务可以自动创建，因为它没有复杂场景引用，开关状态也能从 PlayerPrefs 恢复。但 UIManager、GameManager、AudioManager 这类有 Inspector 引用或全局状态的 Manager，不要随便 AutoSingleton 化。
+
+## VFX 回收计时必须和粒子 timeScale 保持一致
+
+EnemySteam 死亡冒烟特效“越打越没有”的根因，是粒子 `useUnscaledTime=1` 按真实时间播完，但回收协程用 `WaitForSeconds`，暂停时协程停止计时，导致对象永远卡在 activeInstances，池逐渐耗尽。
+
+判断规则：
+
+| 粒子播放 | 回收等待 |
+| --- | --- |
+| `useUnscaledTime = true` | `WaitForSecondsRealtime` |
+| 受游戏暂停影响 | `WaitForSeconds` |
+
+对象池 bug 常常不是池大小不够，而是回收生命周期和表现时间轴不一致。暂停、设置面板、技能选择面板都会把这类问题放大。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-18.md` · 提取日期 2026-05-20
+
+## 关键演出不要在暂停 UI 背后播放完
+
+Boss 入场 VFX 的偶发消失暴露了一个通用坑：战斗暂停 UI 与 unscaled 粒子混用时，粒子会在 UI 背后继续播放，玩家关闭面板时特效已经结束。
+
+排查路径：
+
+1. 看触发时是否可能弹出升级 / 技能 / 设置面板。
+2. 看移动 Tween 是否受 `timeScale` 控制。
+3. 看粒子是否 `useUnscaledTime`。
+4. 看 Destroy / 回收等待使用游戏时间还是真实时间。
+
+修复不是一律改成 unscaled，而是让同一段演出的移动、VFX、等待、销毁使用一致的时间语义。Boss 入场 / 死亡 / 新手引导这类“玩家必须看见”的演出，优先使用真实时间并避免被暂停 UI 遮挡。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-07.md` · 提取日期 2026-05-21
+
+## 出界怪物优先校正位置，不要只做超时销毁
+
+远程怪物（如 LavaGunner、Frostcaster）出现在屏幕外继续攻击时，直接“屏幕外 N 秒销毁”只能消掉对象，不能解决玩家听到音效、看到攻击却找不到来源的困惑。
+
+更稳处理：
+
+| 步骤 | 作用 |
+| --- | --- |
+| 检测远程怪是否越界 | 只作用于远程怪，避免影响弹球怪、Boss、特殊反弹行为 |
+| 校正到最近合法屏幕点 | 让威胁重新可见 |
+| 越界时禁止射击 / 施法 | 防止屏幕外伤害 |
+| 保留超时回收兜底 | 防止极端卡死 |
+
+空间约束不要全局一刀切。只修出现问题的敌人类型，避免破坏依赖越界、反弹或特殊位移的机制。
+
+## 粒子 Ready VFX 重播要同时重置状态和播放
+
+UI 粒子如果只 `SetActive(true)`，很容易因为粒子已经播完、引用丢失或对象隐藏后状态未重置而不再出现。大招 Ready VFX 这类提示要做成显式方法：
+
+1. Inspector 引用丢失时，从子节点按固定名兜底查找。
+2. 隐藏统一走 `HideReadyVFX()`，不要散落 `SetActive(false)`。
+3. 显示统一走 `ShowReadyVFX()`：先激活，再 `Clear(true)`，再 `Simulate(0f, true, true)`，最后 `Play(true)`。
+
+提示型粒子不是背景装饰，它承担状态反馈。每次状态切换都应该能稳定从第一帧重播。
+
+## 爆炸音效要按语义统一并做短窗口去重
+
+多个敌人或子弹在同一帧触发爆炸时，如果每个系统各播自己的 SFX，会变成浑浊的噪音。更稳的做法是把同类爆炸统一路由到一个语义接口，例如 `PlayEnemyExplode()`，并设置 0.05 秒左右的去重窗口。
+
+规则：
+
+| 情况 | 处理 |
+| --- | --- |
+| LavaExploder 死亡爆炸 | 播敌人爆炸，不再叠通用死亡音 |
+| Projectile / Grenade 爆炸 | 可路由到同一爆炸语义 |
+| 同一瞬间多个爆炸 | 短窗口内只保留一次或做有限混音 |
+| 进入结算面板 | 关闭战斗 SFX、激光循环、Boss 循环和场景残留 AudioSource |
+
+音效系统的目标不是“每个事件都播放”，而是让玩家听清当前最重要的事件。
+
+## 来源: `10_流水/光与朽项目/Claude-2026-04-22.md` · 提取日期 2026-05-21
+
+## 配置字段必须进入运行时公式
+
+`enemyHealthMultiplier` 和 `chapterSpeedMult` 这类字段如果只存在于配置或 Inspector，不进入 `WaveModifiers` / 运行公式，就会造成“策划已经改了，游戏完全没变”的安静失效。
+
+检查清单：
+
+1. 配置类里有字段。
+2. 运行时加载章节时读到字段。
+3. 字段被合并进本波 `waveModifiers`。
+4. 怪物生成和子体继承同一套 modifiers。
+5. 实机改一个极端值验证结果确实变化。
+
+《光与朽》的具体坑是：代码读到了 `chapterHealthMult=0.6`，但最终 HP 只用了 `waveDifficulty * extraHealthMult`，漏乘章节倍率。字段定义完成，不等于机制完成。
+
+## 来源: `10_流水/光与朽项目/Claude对话记录.md` · 提取日期 2026-05-21
+
+## 旧功能回归要同时看历史实现和当前架构
+
+反射透镜技能曾被删除，后来因为第三章冰墙机制重新有价值。回归旧功能时，不能直接复制旧代码，也不该完全凭记忆重写。
+
+更稳流程：
+
+1. 查 git 历史，找旧实现的业务逻辑和边界处理。
+2. 读当前技能架构，确认枚举、SO 字段、技能效果管理、激光控制和数据库注册方式。
+3. 用旧逻辑适配新接口，而不是粘贴旧类。
+4. 测试技能顺序问题：例如先选 Reflex 再选 Prism 时，副激光是否继承反射状态。
+5. 对“主激光生效、副激光不生效”这类问题，优先检查状态是否同步到已有子对象和新创建子对象。
+
+旧功能回归的风险不在“逻辑写不出来”，而在它和重构后的对象生命周期、注册路径、子对象继承关系不一致。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-08.md` · 提取日期 2026-05-21
+
+## UI 相机改造后，所有世界/UI 坐标换算都要统一重审
+
+《光与朽》把 Canvas 从 Overlay 逐步改到 Screen Space - Camera 后，连续暴露了几类问题：大招按钮粒子偏移、怪物飘字消失、无人机奖励飘字消失、经验球飞向升级条位置错误。根因相同：旧代码还在用 `Camera.main.WorldToScreenPoint()` 后直接塞给 `RectTransform.position`，或者把 UI world corners 当屏幕坐标。
+
+统一规则：
+
+| 场景 | 推荐换算 |
+| --- | --- |
+| 世界对象显示 UI 飘字 | 世界相机 `WorldToScreenPoint` -> `RectTransformUtility.ScreenPointToLocalPointInRectangle` |
+| UI 目标转世界吸附点 | 先用 Canvas `worldCamera` 得到 UI 屏幕点，再用战斗相机转世界点 |
+| UI 按钮上的粒子 | 优先做成同一 Canvas / UI Camera 下的本地 UI 特效 |
+| 复杂 3D/模型预览 | 才考虑 UI Camera + RenderTexture |
+
+按钮充能特效这类小 UI 特效，不值得上 RenderTexture。更稳的是把特效节点挂到按钮 RectTransform 下，使用 UI Camera 和本地坐标，让 Safe Area、分辨率和长宽比变化时仍跟随 UI。
+
+## 阻塞 UI 出现时，战斗表现要进入同一套暂停语义
+
+技能三选一、复活、设置、结算这类面板弹出时，不只是 Time.timeScale 变化。战斗循环音、Boss 循环音、投射物飞行音、ReadyVFX 都要按同一套遮挡语义暂停或隐藏。
+
+可复用结构：
+
+| 系统 | 处理 |
+| --- | --- |
+| ReadyVFX | `ShouldShowReadyVFX()` 统一判断是否被面板遮挡，关闭后 Ready 状态仍在则恢复 |
+| 音频 | `PauseBattleAudioForOverlay()` / `ResumeBattleAudioForOverlay()` 用计数器支持多层面板 |
+| 投射物循环音 | 不用 prefab `PlayOnAwake + Loop` 自播，改由脚本 `Play/Pause/UnPause/Stop` 接管 |
+| UI 点击音 | 不纳入战斗暂停，避免按钮反馈消失 |
+
+凡是“自己在 prefab 上循环播放”的 AudioSource，都可能绕过 AudioManager 的暂停逻辑。移动端战斗音频最好由脚本按战斗状态统一接管。
+
+## 数值上限要同时约束成长、选项池和子对象
+
+激光长度过长时，不能只在最终长度上 `Clamp`。否则玩家还会继续抽到“增加长度”的无人机奖励，感觉奖励被吞，副激光也可能因为创建时没走同一上限而越界。
+
+更完整的上限结构：
+
+1. 主激光和副激光各有独立上限，例如主 26、副 24。
+2. 技能长度加成和无人机长度奖励都按上限反推，避免几次奖励就顶出屏幕。
+3. 达到上限后，三选一 / 契约奖励池过滤掉长度选项。
+4. 子激光创建、重置和继承状态时也必须应用副激光上限。
+5. 如果保留“溢出转伤害”，要清楚这是补偿机制，不是继续变长。
+
+上限不是只写在 `SetMaxLength()` 里。它还要进入奖励池、技能配置和所有新建子对象的初始化路径。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-10.md` · 提取日期 2026-05-21
+
+## Unity 序列化枚举必须显式编号并迁移资产
+
+FrostGunner 和 LavaSlime 曾因 `EnemyType` 枚举值同为 21，导致 Unity Inspector 里 FrostGunner 自动变成 LavaSlime，运行时第三章还会请求未注册的 LavaSlime。这个问题不是显示 bug，而是序列化值冲突。
+
+修复原则：
+
+1. 资源已经序列化的枚举，一律显式编号。
+2. 新增枚举不要插在中间改变旧值。
+3. 冲突修复后必须同步迁移 prefab、asset、scene、wave config 里的旧数值。
+4. 分章节保留同值时要确认语义，例如 LavaSlime 的 21 仍只在第二章合法。
+5. 用“未注册敌人类型”日志反查配置，不要盲目把该类型注册进对象池。
+
+枚举一旦进入 Unity 资源，就不是普通 C# enum 了，它已经变成数据协议。
+
+## 波次完成判定要看“仍影响战斗的对象”
+
+第三章冰墙会孵化小怪，如果波次完成判定只看可战斗敌人，可能冰墙还在、后续小怪还会生成，无人机却已经入场。
+
+更稳的波次结束口径：
+
+| 对象 | 是否阻止波次结束 |
+| --- | --- |
+| 普通敌人 | 是 |
+| Boss | 是 |
+| 冰墙 / 岩浆液这类仍会阻挡或生成单位的地形 | 是 |
+| 纯演出粒子 / 掉落物 | 否 |
+| 已禁用对象池对象 | 否 |
+
+命名上可以避免“敌人数”歧义，例如 `GetSceneEnemyCount()` / `GetBlockingBattleObjectCount()`。波次完成判定要服务战斗流程，而不是服务某个类名。
+
+## Layer 和 Tag 不要混用语义
+
+`Shield` Layer 存在，不代表 Unity 里也有 `Shield` Tag。`CompareTag("Shield")` 会在 Tag 未定义时报错。反过来，Layer 适合做物理碰撞筛选，Tag 适合做少量高层分类，不应互相替代。
+
+推荐规则：
+
+| 目标 | 推荐判断 |
+| --- | --- |
+| 物理射线 / 碰撞矩阵 | LayerMask |
+| 玩家护盾组件 | `GetComponent<ShieldController>()` |
+| 光棱塔本体 | `GetComponent<TurretHealth>()` |
+| 敌方冰盾 | 独立 `IceShield` Layer + `IceShieldController` |
+| 泛 UI / 特定命名节点 | 优先引用或组件，不靠 Tag 字符串 |
+
+当玩家护盾和敌方冰盾都叫 Shield 时，后续所有激光显示/伤害逻辑都会出现歧义。更好的结构是玩家 `Shield`、敌方 `IceShield` 分层。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-11.md` · 提取日期 2026-05-21
+
+## 协程动画被 StopAllCoroutines 打断前要恢复对象状态
+
+极寒炮手和霜冻施法者偶发“压扁”的根因，是攻击动画直接改 `transform.localScale`，中途被 `StopAllCoroutines()` 打断后没有复位。后来被玩家打一下又恢复，是因为受击逻辑重新按等比缩放写了一次。
+
+可复用规则：
+
+1. 协程动画不要长期直接写本体 `localScale`，能写子节点就写子节点。
+2. 如果必须写本体，缓存基准缩放。
+3. 在 `OnSpawned`、`OnDeactivated`、越界恢复、状态切换、对象池回收前后都调用恢复方法。
+4. `StopAllCoroutines()` 之后立刻恢复关键表现状态：缩放、颜色、透明度、粒子开关、音效。
+
+协程不是事务。中途停止时，Unity 不会帮你执行 finally，也不会自动把对象变回动画前状态。
+
+## 通用颜色系统不要接管特殊技能零件
+
+极寒 Boss 的 BingCi01-04 发射后本该隐藏，但它们被挂进 Boss 通用 `bodyRenderers`，通用变色/恢复逻辑把 alpha 刷回 1，于是隐藏中的冰刺以发射后的旋转姿态短暂反向显示。
+
+处理原则：
+
+| 渲染组 | 适合放什么 |
+| --- | --- |
+| `bodyRenderers` | Boss 常驻身体、受击变色、暗化统一处理 |
+| 技能零件组 | 可隐藏、可旋转、可发射、可再生的部件 |
+| VFX 组 | 粒子、投射物、短生命周期表现 |
+
+技能零件如果会被隐藏、旋转或发射，就不应被通用身体颜色系统随手恢复。否则“恢复原色”会变成“破坏技能状态”。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-12.md` · 提取日期 2026-05-21
+
+## 移动端卡顿排查先分 CPU 数量型热点和渲染配置
+
+《光与朽》战斗卡顿的代码扫描显示，移动端性能问题通常不是单点，而是多个数量型系统叠加。
+
+高优先级排查清单：
+
+| 类别 | 风险点 |
+| --- | --- |
+| 激光 | 同帧重复路径计算、射线检测、`GetComponentInParent`、OverlapBox 查询 |
+| 连锁闪电 | 每帧链路更新、扩链、LineRenderer 刷新、目标搜索 |
+| 敌人材质 | `sr.material` 导致材质实例化，破坏批处理 |
+| AOE | `Physics2D.OverlapCircleAll` 分配数组，造成 GC spike |
+| 飘字 / 经验球 / 金币 | 大量对象各自 Update，且可能触发 Canvas 刷新 |
+| 日志 | 真机战斗日志常开会放大 CPU/IO 压力 |
+| 渲染 | HDR、阴影、Additional Lights、Metaballs RT、全屏后处理 |
+
+Profiler 数据采集优先不要开 Deep Profile。用 Development Build + Autoconnect Profiler 录 20-30 秒，至少看 CPU Usage、Rendering、Memory、Physics 2D、UI Details。没有 profiler 时，再打一秒一次的轻量采样日志：敌人数、激光段数、连锁线段数、飘字数、经验球数、活动 VFX 数、帧时长。
+
+## 微信小游戏打包要避免 Editor-only 调用和不兼容 ShaderGraph 分支
+
+两个典型坑：
+
+1. 方法定义在 `#if UNITY_EDITOR`，但调用没有包宏。编辑器正常，微信小程序构建时方法被裁掉，直接编译失败。调用和定义必须处于同一编译条件下。
+2. ShaderGraph 同时挂 BuiltIn / HD / Universal target，或者粒子特效保留阴影/深度分支，微信 `gles` 构建可能在 `SAMPLE_DEPTH_TEXTURE` / ShadowCasterPass 报错。
+
+微信小游戏 2D 特效更稳的 ShaderGraph 处理：
+
+| 项 | 建议 |
+| --- | --- |
+| Active Target | 只保留项目实际使用的 Universal |
+| Cast Shadows | 关闭 |
+| Receive Shadows | 关闭 |
+| 粒子 Mesh 特效 | 避免走深度/阴影宏 |
+| 报错定位 | 看第一条 shader error，不要被后续 PPtr cast failed 误导 |
+
+小程序构建不是编辑器播放。所有 Editor-only 调试、Shader target、平台宏都要单独过一遍。
+
+## 金币序列帧 Shader 要匹配 Sprite 导入方式
+
+2x2 金币序列图用 SpriteRenderer + 自定义 flipbook shader 时，如果显示成“四瓣”，通常不是帧索引错，而是 Sprite UV 不是整图 0-1。
+
+导入规则：
+
+1. `Texture Type = Sprite (2D and UI)`。
+2. `Sprite Mode = Single`。
+3. `Mesh Type = Full Rect`。
+4. `Wrap Mode = Clamp`。
+5. SpriteRenderer 绑定整张图，不绑定切好的子 sprite。
+
+如果用 Multiple 子图或 Tight mesh，shader 再自己分帧就会在错误 UV 上二次切割。序列帧 shader 要么掌控整图 UV，要么就改用 Sprite Animation，不要两套切图逻辑叠在一起。
+## 来源: `10_流水/光与朽项目/Codex-2026-04-15.md` · 提取日期 2026-05-21
+
+## 激光变宽要同时处理命中体积、发光强度和倍率叠乘
+
+《光与朽》的激光宽度由 `LineRenderer.startWidth/endWidth` 控制，不是运行时改 ShaderGraph 的 `_BeamWidth`。广域透镜提高宽度后，伤害检测也会变宽，因为伤害路径使用 `OverlapBoxNonAlloc`，盒子宽度取自 `LaserBeam.GetLaserWidth()`。
+
+这类“变宽技能”要同时检查三条链：
+
+| 链路 | 风险 | 处理 |
+| --- | --- | --- |
+| 表现宽度 | HDR/Bloom 下线宽变大，发光面积增加，玩家感到爆亮 | 按 `widthRatio` 压低 `_BaseColor` 强度，例如 `1 / sqrt(widthRatio)` |
+| 命中宽度 | 只改视觉会让玩家觉得粗了但仍漏怪 | 伤害盒宽度要跟随真实激光宽度 |
+| 倍率计算 | 主激光已乘大招宽度，副激光又额外乘一次，导致 `overload^2` | 副激光宽度基于当前主宽度乘固定比例，不重复乘大招 |
+
+宽度数值也要让玩家看得出来。基础宽度 `0.5` 时，`2.0x` 只有 `1.0`，在 Bloom 下容易被亮度掩盖；广域透镜提升到 `1.3/1.6/1.9/2.2/2.5` 后，视觉和命中收益都更清楚。
+
+## 广告按钮状态优先换图标和灰态，不在小按钮里塞长文案
+
+技能重掷按钮从“看视频再抽一次 / 今日已达上限”改成骰子图标、摄像头图标和置灰状态后，UI 更稳。小按钮承载不了长文案时，应把语义交给图标、状态和旁边说明区域。
+
+可复用规则：
+
+1. 免费阶段显示原功能图标。
+2. 广告阶段切到广告图标。
+3. 达到次数上限时，按钮、图标、文字一起置灰。
+4. 解释性文案放到面板正文，不要动态塞进按钮。
+5. 新增可选引用时，允许 Inspector 绑定；未绑定时用子节点查找兜底，并缓存原始颜色用于恢复。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-16.md` · 提取日期 2026-05-21
+
+## 阻挡物语义要覆盖所有攻击路径
+
+熔浆液和冰墙作为 `Stationary` 障碍，主激光已经会在命中后 `break`，但连锁反应技能最初仍可能跳到障碍物后面的敌人。原因是连锁路径只把障碍物排除为目标，没有检查“源目标到下个目标之间是否被阻挡”。
+
+复用原则：
+
+| 攻击类型 | 阻挡检查 |
+| --- | --- |
+| 主激光 | 命中 `Stationary` 后停止穿透 |
+| 副激光 / 分裂激光 | 和主激光使用同一阻挡语义 |
+| 连锁闪电 | 从源目标到候选目标前先 `Linecast` 检查中间 `Stationary` |
+| AOE / 溅射 | 明确定义是否绕过墙，不要默认继承连锁逻辑 |
+
+障碍物不是“不能被选为目标”这么简单。只要它在视觉上挡住战线，所有远程传播技能都要回答：这条效果能不能穿过它？
+
+## 调试工具的能力范围要和当前问题对齐
+
+移动端性能排查时，曾先做了一个带 CSV、标记、GC、线程耗时的复杂采集面板，但用户真正需要的是“右上角只显示 FPS，然后 BattleStatistics 能在手机包正常保存战斗 CSV”。最终拆成两个工具更清楚：
+
+- `FpsDisplay`：只显示 FPS，不采集、不保存、不写文件。
+- `BattleStatistics`：由 `enableDataCollection` 控制是否采集战斗 CSV。
+
+调试工具要避免“顺手做成全能面板”。当问题是“我想知道什么时候掉帧”，一个轻量 FPS 文本比复杂采样系统更低风险；当问题是“我要保存战斗数据”，就让原本的 BattleLog 管线负责。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-17.md` · 提取日期 2026-05-21
+
+## UI 状态刷新必须监听真实数据事件
+
+体力不足时主菜单开始按钮置灰，玩家在 `TopBarTipsPanel` 领取体力后，顶部体力数字变了，但开始按钮仍旧灰掉。根因是主菜单只在 `Start()` / `RefreshUI()` 刷按钮状态，没有订阅 `ProgressManager.OnEnergyChanged`。
+
+UI 状态刷新规则：
+
+| UI 表现 | 应监听的数据事件 |
+| --- | --- |
+| 开始按钮可点/置灰 | 体力变化 |
+| 顶栏金币/图纸 | 对应资源变化 |
+| 技能重掷次数 | 免费次数 / 广告次数变化 |
+| 装备按钮 | 装备成功或背包变化 |
+
+不要让 UI 只在面板打开时刷新。只要一个按钮的可用性依赖资源，就必须订阅资源变化事件，否则“数据已经变了，按钮还旧”的 bug 会反复出现。
+
+## 通用按钮组件要统一置灰、Q 弹和动态按钮接入
+
+按钮置灰如果只改 `Button.interactable`，子节点图片和文字仍然可能保持亮色；点击动画如果散落在各面板，也会产生缩放残留和风格不一致。更稳的做法是统一 `UIButtonCommon`：
+
+- 禁用时递归处理自身和子节点的 `Image`、`TMP/Text`。
+- 点击时播放统一 Q 弹动画，并允许单按钮关闭。
+- `OnDisable` / 隐藏前停止动画并恢复原始缩放。
+- 动态生成的按钮通过 `UIButtonCommonHelper.Ensure(button)` 接入。
+- 特殊 UI 例如科技树锁定节点，可以保留专属透明度，只接入 Q 弹。
+
+统一组件不是为了“所有按钮完全一样”，而是把常见的灰态、缩放恢复、点击反馈收口，特殊样式再显式豁免。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-18.md` · 提取日期 2026-05-21
+
+## 展示数据和实际生效数据必须来自同一个 canonical 对象
+
+技能三选一出现“卡面描述和实际技能不一致”，高概率来自同一 `SkillType` 存在重复或非规范引用：展示用列表里的 `SkillData`，实际生效时又按 `SkillType` 从数据库缓存取另一份。
+
+解决思路：
+
+1. 构建技能池时按 `SkillType` 去重。
+2. 展示、选择、生效都收敛到数据库中的 canonical `SkillData`。
+3. 同一局中升级同一技能时，卡面描述、选择回调、战斗效果必须同源。
+4. 测试时重点跑“先选 A，再升级 A”的连续路径，而不是只看首次三选一。
+
+所有“显示 A，实际吃到 B”的 bug，都优先查数据源是否分叉。
+
+## 微信小游戏打包排查要先分清资源、图形上下文和包依赖
+
+微信开发者工具报错时，后续错误常常是第一现场失败后的连锁反应。`Unable to create WebGL context` 后面的 `scheduler is not a function` 就更像二次报错，不应优先追业务资源。
+
+排查顺序：
+
+| 现象 | 优先判断 |
+| --- | --- |
+| 删 `Assets/Resources`、Box 场景仍失败 | 更偏图形配置 / WebGL context / 工具环境 |
+| 同工具下另一个项目正常 | 对比项目配置差异 |
+| 替换 ProjectSettings 后仍失败 | 查 Build Profile、MiniGameConfig、Graphics、Quality、URP 设置 |
+| `Invalid WebGL template path` | 检查 `Packages/manifest.json` 是否把微信 UPM 包覆盖掉 |
+| `Invalid GUILayout state in WXEditorWin` | 微信插件窗口状态或插件配置 asset 不匹配，先关窗口重启 |
+
+跨项目对拷时最危险的是 `Packages/manifest.json` 和 `packages-lock.json`。它们不是普通配置文件，会改变实际安装的包。做 A/B 测试时，优先只改单个字段，不要整目录替换。
+
+## DOTween 在销毁前必须 Kill，微信小游戏环境对失效 Transform 更敏感
+
+无人机三选一在微信包里爆炸瞬间崩溃，日志指向 `DOScale -> Transform.localScale`。最终可疑链路集中在箱子和进度 UI 的 DOTween：对象被销毁后，缩放动画下一帧继续写失效 Transform。
+
+复用规则：
+
+1. 所有 `DOScale`、`DOFade`、脉冲循环 tween 都要保存句柄。
+2. `OnDestroy()`、`Hide()`、`HideImmediate()`、对象池回收前统一 `Kill`。
+3. 同一对象开始新 tween 前，先 kill 旧的同类 tween。
+4. 管理器如果会 `Destroy` 一批对象，要么先通知对象清 tween，要么延迟到动画结束后销毁。
+5. 微信小游戏 / WebGL 环境里，不要指望 DOTween 对已销毁对象的异常都被安全吞掉。
+
+“编辑器里没崩”不代表生命周期安全。凡是动画和销毁在同一帧附近发生，都要按 WebGL 更严格的环境来写。
+
+## 来源: `10_流水/光与朽项目/Codex-2026-04-19.md` · 提取日期 2026-05-21
+
+## RemoveAllListeners 会误删通用按钮能力
+
+背包物品、装备槽、动态按钮有 `Button` 组件却没点击音效，常见原因不是按钮坏了，而是业务代码在 `Setup()` 中调用 `RemoveAllListeners()`，把通用音效、通用动画等监听一起删掉。
+
+推荐做法：
+
+| 场景 | 做法 |
+| --- | --- |
+| 动态绑定业务点击 | 只移除自己的业务回调，再重新添加 |
+| 运行时生成按钮 | `UIButtonCommonHelper.Ensure(button)` |
+| 旧按钮音效脚本 | 迁移到统一按钮组件，避免双播 |
+| 全局自动接入 | 场景加载后扫描 `Button`，但动态项仍要显式 Ensure |
+
+`RemoveAllListeners()` 是很钝的刀。除非按钮确实完全私有，否则不要用它清业务逻辑。
+## 来源: `10_流水/光与朽项目/Codex-2026-04-22.md` · 提取日期 2026-05-22
+
+## 对象池里的粒子特效必须显式 Stop、Clear、Play
+
+连锁反应替换成带粒子的 `VFX_ChainLightning` 后，开局对象池预热出的 10 个实例直接漏粒子，结束后粒子也残留。根因是对象池只管理 GameObject active，不会自动处理子 `ParticleSystem` 的生命周期。
+
+可复用处理：
+
+| 时机 | 粒子动作 |
+| --- | --- |
+| `Awake()` / 预热 | 关闭 `playOnAwake`，`Stop + Clear` |
+| `Initialize()` / 启用 | `Clear + Play`，从头播放 |
+| `Deactivate()` / 回池 | `StopEmittingAndClear` |
+| 换 prefab | 检查根节点是否是专用 renderer，不要复用激光 prefab |
+
+对象池预热的前提是“对象存在但不可见”。只隐藏根物体不够，粒子、Trail、LineRenderer、材质颜色都要有自己的回池清理。
+
+## 特效颜色要以当前玩法对象为权威，不要有默认白色兜底
+
+闪电链的颜色最初只在聚能透镜或极寒光束时改色，没选改色技能时变成白色。正确规则是：闪电链永远跟随当前激光颜色。默认激光是黄色，闪电链就黄色；聚能变红就红；极寒变蓝就蓝；恢复默认时也恢复激光材质原始色，而不是白色。
+
+工程上要注意三层同步：
+
+1. 从 `LaserBeam.GetCurrentColor()` 读真实当前颜色，而不是写死默认色。
+2. `LaserController` 在初始化、改色、重置颜色时同步给 `ChainLightningManager`。
+3. `ChainLightningRenderer` 同步根 `SpriteRenderer`、子 `ParticleSystem.main.startColor` 和材质属性。
+
+如果 SpriteRenderer 的 shader 不吃顶点色，还要用 `MaterialPropertyBlock` 写 `_Color`、`_BaseColor`、`_EmissionColor`、`_TintColor`。不要直接改 `renderer.material`，否则会产生材质实例并破坏批处理。
+
+## 来源: `10_流水/光与朽项目/程序AI对话.md` · 提取日期 2026-05-22
+
+## 战斗 UI 厚血条要做缓冲条，而不是只提高伤害数字
+
+Boss 血量很厚时，玩家打一段时间看不到血条变化，会误判“没伤害”。更好的做法是双层血条：
+
+- 上层红条代表真实血量，受击瞬间减少。
+- 下层白条代表缓冲血量，延迟 0.2 秒后追上。
+
+这种白色 buffer bar 能让玩家看到“刚才那一下打进去了”。它不改变数值，却显著改善伤害可见性，特别适合 5 万、20 万这类高血量 Boss。
+
+## 配置驱动技能时，展示、数值和颜色都要从同一份数据读
+
+技能三选一、激光颜色、VFX 颜色、技能描述如果各自写硬编码，很容易出现“卡面写一套，战斗生效另一套”。后期技能配置应收敛到：
+
+| 内容 | 推荐来源 |
+| --- | --- |
+| 技能数值 | `SkillData.levelData` |
+| 技能是否改色 | 技能级别之外的 `changesColor` / `skillColor` |
+| 聚能 + 极寒混合色 | `SkillDataBase` 或统一颜色策略表 |
+| 描述文本 | 每级描述模板，重点数字用富文本标色 |
+| 粒子颜色 | 复用激光当前颜色，不单独配置一套 |
+
+颜色不要每一级重复填；数值不要在脚本里另写一份；描述不要只写 Lv1。数据源越少，后续平衡越不容易打架。
+
+## 战斗内动态物体如果没有眼睛或不闪白，要有显式语义开关
+
+熔浆液、冰墙这类阻挡物可以复用“高血量怪物”管线，但不能完全当普通怪处理。否则会出现不该有的飘字、抖动、白闪，甚至对 inactive 的 Eyes 节点启动协程报错。
+
+推荐在数据或组件层显式区分：
+
+| 对象 | 推荐语义 |
+| --- | --- |
+| 普通敌人 | 有眼睛、可受击反馈、掉 XP |
+| 熔浆液 / 冰墙 | 阻挡激光、高血量或定时消失、无眼睛、无普通受击抖动、可不掉 XP |
+| 宝箱 / 战术箱 | 可被激光打爆，但奖励逻辑和敌人死亡不同 |
+| Boss 子弹 | 可被激光击落，但不走敌人经验和飘字规则 |
+
+“复用敌人接口”不等于“继承敌人表现”。复用前先列清楚哪些反馈应关闭。
+
+## 运行时脚本灰掉不报错时，先怀疑 Unity 编译/序列化刷新
+
+有一次 `TurretHealth` 挂在场景物体上变成灰色且脚本名消失，Unity 没有明确报错；删除数据采集代码、重新导入也无效，重启 Unity 后恢复。后来把光棱塔做成 prefab，再加回采集代码才稳定。
+
+经验：
+
+- 场景对象上的脚本引用异常，不一定是业务代码逻辑错。
+- Unity 编译域、程序集刷新、脚本 GUID/类名变动，都可能让 Inspector 临时丢脚本。
+- 重要战斗对象尽量 prefab 化，少让关键组件只存在于场景散件上。
+- 遇到“脚本灰掉但控制台无错”，先重启 Unity / 重新生成工程文件 / 检查 `.meta` 与类名，再继续追业务链路。
+
+## 来源: `10_流水/历史聊天/Claude_光与朽程序_2025-11-01.md` · 提取日期 2026-05-22
+
+## Metaballs 换章节色时，不要改 RT 摄像机底色
+
+《光与朽》的怪物身体层使用 RT / Metaballs 做融合时，阈值 Shader 依赖“黑色背景 + 非黑 blob”来判断形状。如果为了换章节气氛去改 RT 摄像机背景色，很容易让阈值判断失真，导致边缘、融合和透明显示异常。
+
+更稳的拆法：
+
+| 层级 | 应该改什么 | 不应该改什么 |
+| --- | --- | --- |
+| RT / Metaballs 计算层 | 保持黑底和阈值规则稳定 | 不改相机背景来做章节色 |
+| 最终显示材质 | 通过 `MetaballsManager.SetBlobColor` 或章节配置换 blob 色 | 不让表现色反向影响计算 |
+| 战斗背景 | 通过 `ChapterConfig` 切换背景 Sprite / 环境层 | 不混进身体融合逻辑 |
+
+章节视觉配置应当是数据驱动：第一章黑紫油污、第二章暗红熔岩、第三章冷蓝冰霜都可以通过显示材质和背景图完成。渲染计算层越稳定，章节表现越容易扩展。
+
+## 来源: `10_流水/历史聊天/Claude_光与朽程序_2025-11-02.md` · 提取日期 2026-05-22
+
+## 修旧 Unity 项目时，先读真实 API，再写补丁
+
+长对话里多次出现一个典型风险：修复方案看似合理，但引用了项目中并不存在的字段、事件或枚举，例如 `GameEvents.OnGameOver`、错误的 Boss 配置字段、错误的投射物初始化参数、错误的伤害来源枚举。Unity 项目迭代快，聊天记录里的“应该有”不能当成事实。
+
+落地修复前至少做三步：
+
+1. 用 `rg` 查真实字段、事件、方法签名和调用点。
+2. 对照 Inspector / ScriptableObject 数据结构，确认配置项是否存在。
+3. 如果现象原因不确定，先加诊断日志和最小监控点，不要直接重写链路。
+
+例如波间无人机不出现这类问题，优先在 `WaveManager.StartWaveInterval`、`TacticalDropManager.OnWaveComplete` 和事件触发链上加日志，确认是事件没发、订阅没接，还是条件被过滤。工程修复的第一步是让真实路径可见，而不是让想象中的架构更完整。
+
+## 来源: `10_流水/历史聊天/Claude_光与朽程序_2025-11-03.md` · 提取日期 2026-05-22
+
+## C# event 只能由声明类触发，业务脚本应调用 Trigger 方法
+
+Unity 项目里把 `GameEvents.OnBossHealthChanged?.Invoke(...)` 写在 `BossHealth` 这类外部脚本中，会触发 `CS0070`：C# 的 `event` 只能在声明它的类内部直接 `Invoke`。正确做法是让事件总线提供触发方法：
+
+| 错误写法 | 正确写法 |
+| --- | --- |
+| `GameEvents.OnBossHealthChanged?.Invoke(percent)` | `GameEvents.TriggerBossHealthChanged(percent)` |
+| `GameEvents.OnBossDeath?.Invoke()` | `GameEvents.TriggerBossDeath()` |
+
+事件字段负责订阅，Trigger 方法负责广播。这样可以避免外部脚本绕过事件总线，也让日志、空值保护和调试钩子集中在一个地方。
+
+## 精英怪缩放要有“当前身份基准”，不要被受击缩放重置
+
+如果普通怪原始缩放是 `originalScale`，精英怪出生后再乘 `1.3f`，那么受击时按血量重新设置 `transform.localScale = originalScale * newScale`，会把精英怪从 1.9 直接打回 1.5。
+
+修复原则是：所有运行时缩放都从同一个“身份基准缩放”出发。
+
+```csharp
+float healthRatio = currentHealth / maxHealth;
+float damageScale = Mathf.Lerp(minScale, 1f, healthRatio);
+float identityScale = isElite ? ELITE_SCALE_MULTIPLIER : 1f;
+transform.localScale = originalScale * identityScale * damageScale;
+```
+
+精英、Boss、变异、冻结、濒死变小都属于缩放层。不要让其中一层在受击时覆盖其它层。
+
+## 低频 UI 表现可以直接 Instantiate，不必硬套对象池
+
+对象池适合高频对象：伤害飘字、敌人死亡特效、金币飞行、子弹。波间无人机奖励飘字每波只出现 1-2 次，如果为了统一而接入复杂对象池，反而会引入类型回收、池状态、Prefab 映射错误等 Bug。
+
+| 场景 | 推荐 |
+| --- | --- |
+| 敌人伤害数字 | 对象池，上限和优先级回收 |
+| 金币/经验飞行 | 对象池 |
+| 每波一次的无人机奖励文字 | 直接 Instantiate，动画完 Destroy |
+| 结算面板动画 | 直接常驻或按需创建 |
+
+工程化不是所有东西都池化，而是让复杂度和触发频率匹配。
+
+## 非 EnemyBlob 也在 Enemy Layer 时，激光伤害不能只查 EnemyBlob
+
+战术箱/无人机如果放在 `Enemy` Layer，激光物理检测能命中，但如果代码只执行 `GetComponentInParent<EnemyBlob>()`，就会因为对象不是普通怪而跳过伤害。
+
+更稳的结构：
+
+1. 激光检测 Layer 只负责“是否可能被激光打到”。
+2. 伤害接收走 `IDamageable`、`ILaserDamageReceiver` 或明确的分支。
+3. 普通怪、Boss 弱点、投射物、战术箱各自实现自己的受伤逻辑。
+
+Layer 是粗筛，不是类型系统。战斗里凡是“可被激光打爆”的对象，都要有统一的伤害入口或清晰的分支。
+
+## 结算、三选一和暂停界面要用同一套暂停语义
+
+结算面板弹出时，如果怪物继续动、激光还能扫、经验球继续飞、闪红继续播，就说明只是显示了 UI，没有暂停玩法。统一规则应当是：
+
+| 系统 | 暂停后行为 |
+| --- | --- |
+| WaveManager / Enemy / 物理移动 | 停止 |
+| 玩家输入 / 激光旋转射击 | 停止 |
+| 战斗飘字 / 经验球 / 屏幕受击特效 | 停止或冻结 |
+| 结算面板、按钮、面板动画 | 使用 unscaled time 继续播放 |
+
+不要让每个面板自己猜要不要 `Time.timeScale = 0`。更稳的是统一的游戏状态或暂停服务：技能三选一、暂停菜单、胜利/失败结算都走同一套入口。
+
+## 来源: `10_流水/历史聊天/Claude_光与朽程序_2025-11-04.md` · 提取日期 2026-05-22
+
+## WaveManager 的阶段推进不要被刷怪开关阻断
+
+`isSpawning` 只应该控制“是否生成敌人”，不应该控制“是否更新当前阶段”。如果在 `Update()` 开头写 `if (!isSpawning) return;`，进入休息期后阶段切换也会停止，永远无法从 `Rest1` 走到 `Variation`。
+
+正确拆分：
+
+1. `GameManager.IsPlaying` 这类全局状态可以阻断整个 Update。
+2. `UpdateCurrentPhase(gameTime)` 始终执行。
+3. `isSpawning` 只包住 `ProcessSpawning()`。
+4. 每个阶段开始时根据 `phase.enableSpawning` 重新设置 `isSpawning`。
+
+阶段状态机和刷怪执行器是两层。休息期暂停刷怪，但时间和阶段仍然要前进。
+
+## Screen Space Overlay 的飘字坐标要走 Canvas 坐标转换
+
+在 `Screen Space - Overlay` 且 `Canvas Scaler = Scale With Screen Size` 时，直接把 `WorldToScreenPoint` 的像素坐标塞给 `RectTransform.position` 很容易错位。飘字系统要把世界坐标转换到目标 Canvas 的局部坐标。
+
+同时，UI 管理器初始化要避开时序坑：
+
+| 风险 | 处理 |
+| --- | --- |
+| `Awake` 时找不到 Canvas | 手动拖引用，或 `Start`/等待一帧后初始化 |
+| 预热日志成功但容器为空 | 在创建实例前打印 prefab、container、parent |
+| 多实例或旧脚本没编译 | 输出实例 ID / 初始化标记，必要时重开 Unity |
+| Prefab 组件缺失 | 检查 `TextMeshProUGUI`、`CanvasGroup`、业务脚本 |
+
+UI 对象池调试要先证明“容器存在、实例真的生成、坐标真的转换”，再追动画。
+
+## 激光和粒子颜色应由技能数据驱动，并同步材质参数
+
+如果 `SkillData.skillColor` 已经配置了颜色，就不要在 `SkillEffectManager` 中再硬编码 Focus 红、Frost 蓝。激光主材质、StartVFX、EndVFX、子粒子材质都应该从同一技能颜色策略读取。
+
+对于通过材质自发光控制的粒子，常见做法是写一个轻量同步组件：
+
+| 对象 | 同步字段 |
+| --- | --- |
+| 主激光材质 | `_Color` 或项目实际使用的颜色字段 |
+| StartVFX / EndVFX 子粒子材质 | `_EmissionColor` |
+| 运行时实例 | 优先用实例材质或 `MaterialPropertyBlock`，避免全局改共享材质 |
+
+颜色规则也要有优先级：Focus 可以让主激光变红；Frost 如果不想覆盖主激光，就只把命中/喷射 VFX 改成蓝色。颜色不是装饰，它在告诉玩家当前 Build 的主要机制。
+
+## 来源: `10_流水/历史聊天/ChatGPT_美妆叠叠乐美术_2025-10-12.md` · 提取日期 2026-05-22
+
+## Unity 中文 UI 先建 TMP 字体资产，不要用默认字体硬顶
+
+美妆叠叠乐这类中文休闲游戏，如果按钮、标题和结算界面仍然使用默认字体，整体 UI 会显得像临时 Demo。工程上要先把可商用中文字体接入 TextMeshPro，再谈描边、渐变和按钮质感。
+
+推荐流程：
+
+1. 选可商用中文字体，例如思源黑体、阿里巴巴普惠体，标题可另配更圆润的展示字体。
+2. 将 `.ttf` / `.otf` 导入 Unity。
+3. 打开 `Window > TextMeshPro > Font Asset Creator` 生成 TMP Font Asset。
+4. 中文字库建议 `Atlas Population Mode = Dynamic`，避免一次性塞入过大字符集。
+5. UI 文本、标题、数字可以拆不同字体资产，减少图集膨胀。
+6. 把 TMP Font Asset 写入项目级 UI 规范，不要每个 Prefab 自己随手选字体。
+
+字体是 UI 风格的一部分，不是最后替换的文字素材。尤其微信小游戏压缩后，过细字体和弱描边会明显损害可读性。
+
+## 来源: `10_流水/2026-05/2026-05-21.md` · 提取日期 2026-05-23
+
+## 轻量花园经营优先用 2D / 2.5D，不要默认上 3D
+
+荒废花园这类治愈种植经营，如果核心不是“旋转欣赏 3D 花园、自由摆放、拍照分享”，就不应默认进入 3D。对单人开发、微信小游戏包体和 7 天灰盒来说，2D / 2.5D 更稳。
+
+推荐技术路线：
+
+| 阶段 | 技术选择 | 目标 |
+| --- | --- | --- |
+| 7 天灰盒 | Unity 2D 网格 + 占位 Sprite | 验证播种、成长、收获、卖花/复苏选择 |
+| 1 个月 Demo | 2D / 2.5D 斜俯视，Tilemap 或分层 Sprite | 让花园复苏过程可读、可扩地块 |
+| 表现增强 | Spine / 简单骨骼、2D 粒子、光晕、水波、开花动画 | 强化治愈反馈，不改变工程量级 |
+
+不建议一开始做完整 3D：
+
+- 美术和动画成本会上升。
+- AI 生成 2D 资产更容易快速出风格。
+- 微信小游戏包体、性能和加载压力更可控。
+- 地块扩展、花朵阶段、建筑状态用 2D 更容易迭代。
+
+只有当 3D 本身就是核心卖点时，才考虑上 3D。否则，技术路线要服务验证速度，而不是服务“看起来更像完整游戏”的心理安全感。
+
+## 来源: `10_流水/历史聊天/Claude_美妆叠叠乐程序_2025-09-01.md` · 提取日期 2026-05-23
+
+## 休闲关卡项目先拆清编辑器、运行时和共享数据
+
+美妆叠叠乐这类 Unity 休闲关卡项目，编辑器工具和运行时不要混在同一层。没有 Editor 依赖的数据类可以放进运行时共享命名空间，例如 `MakeupPuzzle.Core`；编辑器窗口、生成器和关卡编辑 UI 保留在 `MakeupPuzzle.Editor`。
+
+运行时最小 Manager 边界可以这样拆：
+
+| Manager | 职责 |
+| --- | --- |
+| `GameManager` | 全局状态、主菜单/关卡/暂停/结算、进度 |
+| `LevelManager` | 读取关卡数据、胜负判断、关卡流程 |
+| `InputManager` | 点击检测、Raycast、输入开关 |
+| `OrderManager` | 当前订单、锁定订单、完美订单、订单完成反馈 |
+| `StackManager` | 堆叠物件、遮挡、点击移除、飞行动画 |
+| `TempSlotManager` | 临时槽占用、满槽失败、UI 刷新 |
+| `UIManager` | HUD、暂停、胜利、失败面板 |
+
+小体量项目早期用 `Resources` 加载 ScriptableObject 可以接受，但必须缓存。不要在每个物件解析时反复 `Resources.LoadAll<CosmeticItemSO>("Cosmetics")`，200 个物件会变成 200 次同步加载。
+
+## 世界物件飞向 UI 槽位时，先统一坐标和状态语义
+
+如果堆叠化妆品是世界空间 GameObject，而订单包、临时槽是 UI，那么点击链路应固定为：
+
+1. 世界物件被点击后，先确认它是当前可点击状态。
+2. 将目标 UI 槽位转换为世界坐标或屏幕坐标下的可飞行终点。
+3. 物件飞向对应槽位，抵达后隐藏或销毁世界物件。
+4. UI 槽位显示对应 Sprite，并由订单/临时槽系统接管后续状态。
+
+这里最容易出错的是“飞向订单包根节点”而不是“飞向具体空槽位”。订单 UI 应返回具体 slot `Transform`，否则自动匹配时会出现物件飞到包中心、槽位数据没填或视觉和数据不同步。
+
+## 遮挡点击要用面积阈值和事件更新，不要每帧全量碰撞
+
+叠放玩法的可点击判断不能只看中心点距离。更稳的是用 collider/bounds 重叠面积：如果某物件被更高 `sortingOrder` 的物件覆盖超过约 10%，就标为不可点击；覆盖很少则仍允许点击。
+
+性能边界也要一开始说清楚：
+
+| 做法 | 原因 |
+| --- | --- |
+| 初始生成后计算一次遮挡状态 | 静态堆叠不需要每帧判断 |
+| 每次移除物件后只更新受影响区域 | 避免点击后全场 `IsTouching()` 暴涨 |
+| 可点击、被遮挡、已入包用材质/饱和度状态表达 | 玩家不需要试错点击 |
+| `OnMouseDown` 项目要让 z-depth 和 `sortingOrder` 对齐，或改用受控 Raycast | 避免点到下层 collider |
+
+如果点击后 FPS 从流畅掉到个位数，优先排查两个点：是否每次点击后全量碰撞检查，是否每个物件都在同步 `Resources.LoadAll`。
+
+## 来源: `10_流水/历史聊天/Claude_美妆叠叠乐程序_2025-09-02.md` · 提取日期 2026-05-23
+
+## 跨场景 Manager 不要持有场景 UI 引用
+
+把父节点或 Manager 设成 `DontDestroyOnLoad` 后，最常见的问题是它还拖着旧场景的 UI 引用。美妆叠叠乐的 MainMenu 经验可以抽成一条规则：持久 Manager 只保留数据、流程和状态；具体按钮、面板、ScrollView、奖励弹窗交给当前场景自己的 `MainMenuUI` / `GameLevelUI`。
+
+跨场景打开面板也不要直接拿旧引用。可用流程是：
+
+1. GameLevel 中设置 `GameManager.ShouldOpenCollectionHall = true`。
+2. 切回 MainMenu。
+3. MainMenu 场景 UI 初始化完成后读取 flag。
+4. 打开收藏馆面板，并立刻清掉 flag。
+
+奖励面板可以复用一个 `ReceiveAwardPanelUI`，但入口要分清：奖杯奖励、抽到化妆品、礼盒完成送道具都可以走不同 `Show(...)` 方法。复用面板的底线是每次关闭都清理 `CanvasGroup`、遮罩、raycast blocker、回调和当前奖励数据，否则下一次打开会出现“画面关闭了但按钮点不动”的幽灵状态。
+
+## 来源: `10_流水/历史聊天/Google_美妆叠叠乐策划_2025-09-02.md` · 提取日期 2026-05-23
+
+## GDD 转工程前先落成三层数据结构
+
+美妆叠叠乐这类关卡益智游戏，策划案不能直接变成散落的 MonoBehaviour 字段。先把数据模型拆清，后面编辑器和运行时才能共用。
+
+| 数据层 | 作用 | 关键字段 |
+| --- | --- | --- |
+| `CosmeticType` / `CosmeticItemSO` | 定义化妆品模板 | ID、名称、类型、品牌、色系、稀有度、icon、prefab |
+| `CosmeticInstance` | 定义关卡内的一个物件 | 模板引用、世界坐标、层级 / sortingOrder、旋转、是否奖杯 |
+| `OrderBagData` | 定义一个订单包 | 槽位列表、订单类型、是否完美订单、是否奖杯订单、对应 UI prefab |
+| `LevelDataSO` | 定义完整关卡 | 关卡名、全部订单包、全部物件实例、临时槽数量、关卡类型 |
+
+这层结构的意义是让编辑器和运行时读同一份事实。编辑器负责生成和校验，运行时负责加载和表现；不要让运行时再“猜”订单、奖杯、层级或品类。
+
+## 来源: `10_流水/美妆叠叠乐项目/程序AI对话.md` · 提取日期 2026-05-23
+
+## 关卡编辑器要区分“配置资产、UI 预览、世界物件”
+
+美妆叠叠乐的关卡编辑器踩过一个典型混乱点：化妆品库是 UI 列表，堆叠区是世界空间 GameObject，订单包是 UI prefab。三者不能共用同一个 prefab 概念。
+
+| 对象 | 推荐形态 |
+| --- | --- |
+| 化妆品配置 | `Resources/Cosmetics/*.asset`，数据里引用 icon 和 world prefab |
+| 化妆品库预览 | UI item prefab，显示 `Image` 和 `TextMeshProUGUI` 名称 |
+| 堆叠区物件 | GameObject + `SpriteRenderer` + `PolygonCollider2D` + kinematic `Rigidbody2D` |
+| 订单包 | UI prefab，例如 `OrderBagX2Item` / `OrderBagX3Item`，槽位节点命名 `Slot_0`、`Slot_1` |
+| 关卡数据 | `Resources/LevelData/*.asset`，记录订单、物件实例、层级和位置 |
+
+如果预览区所有物件都显示同一张 prefab 图片，说明 UI item 没有从 `CosmeticItemSO` 写入 icon / name；如果堆叠区拖拽生成不了物件，优先检查 UI 坐标到世界坐标的转换和 world prefab 引用，而不是把 Sprite2D 改成 UI Image。
+
+## 编辑器生成算法要先保证订单和物件严格一致
+
+关卡编辑器生成订单和化妆品时，最重要的校验是：堆叠区物件总数必须等于所有订单包槽位总和。若组合无法整除，不要自动调整，应提示用户修改总数量或订单组合，避免生成出策划解释不了的关卡。
+
+可复用生成流程：
+
+1. 在订单区输入 X2/X3/X4/X5 包数量或比例，选择普通关、品牌关、颜色关、类型关。
+2. 生成订单包，混合包、奖杯包作为显式选项，不靠隐藏概率。
+3. 堆叠区生成前检查订单区不为空。
+4. 按订单反向生成需要的化妆品实例，层级由解法顺序决定。
+5. 生成完成后立即刷新遮挡状态和灰态。
+
+算法参数不要全堆在主界面。`ClusterDensity`、局部难度、订单调整等高级参数适合放进“算法设置”弹窗；常用操作留在主面板，减少编辑器自身的认知负担。
+
+## 透明边缘会污染遮挡判定，优先用 Sprite 形状而非 Renderer 大包围盒
+
+如果化妆品明明没有被挡却被置灰，且 collider 显示正常，一个常见原因是 Sprite 图片有大量透明边缘，代码却用了 `renderer.bounds` 这类大矩形包围盒参与遮挡判断。叠放类物件应优先使用 `Sprite.bounds`、`PolygonCollider2D` 或自定义碰撞形状，让遮挡判断贴近可见轮廓。
+
+运行时刷新策略：
+
+| 场景 | 刷新方式 |
+| --- | --- |
+| 关卡初始化 | 所有物件生成后强制刷新一次物理状态，再统一检测 |
+| 玩家移除物件 | `StackManager.RemoveItem()` 后通知剩余物件重算 |
+| 编辑器拖拽 | 拖拽中可实时更新，方便设计师观察灰态 |
+| 编辑器层级修改 / 加载关卡 | 立即重算，保证可视结果和保存数据一致 |
+
+编辑器为了操作方便，可以允许拖动被遮挡物；运行时则必须禁止点击被遮挡物。这两套规则要共享检测逻辑，但不要共享交互限制。

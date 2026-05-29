@@ -5,7 +5,7 @@
 //   1. 在全屏 Image GameObject 上挂载此脚本（[RequireComponent(typeof(Image))]）
 //   2. 确保 UIHoleMask.shader 已导入到项目的 Shaders 文件夹
 //   3. 调用 SetHoleTarget(rectTransform) 设置挖孔目标
-//   4. 配合 HoleMaskClickBlocker 实现孔洞区域点击穿透
+//   4. 配合 HoleMaskClickBlocker(ICanvasRaycastFilter) 实现孔洞区域点击穿透
 //
 // 命名空间：请根据项目实际修改 namespace
 
@@ -14,6 +14,13 @@ using UnityEngine.UI;
 
 namespace Template.UI
 {
+    public enum HoleShape
+    {
+        Rect = 0,
+        RoundedRect = 1,
+        Circle = 2
+    }
+
     /// <summary>
     /// UGUI 挖孔遮罩控制器
     /// 依赖：UIHoleMask.shader（Shader "UI/HoleMask"）
@@ -25,13 +32,19 @@ namespace Template.UI
         [SerializeField] private Color maskColor = new Color(0f, 0f, 0f, 0.8f);
         [SerializeField] private float cornerRadius = 20f;          // 圆角半径（像素）
         [SerializeField] private Vector2 holePadding = new Vector2(20f, 20f); // 挖孔扩展边距（像素）
+        [SerializeField] private HoleShape holeShape = HoleShape.RoundedRect;
 
         [Header("运行时调试")]
         [Tooltip("启用后可在 Play 模式实时调整下方调试参数，不走自动计算")]
         [SerializeField] private bool enableRuntimeDebug = false;
+        [Tooltip("可选。拖入目标 RectTransform 后，调试模式会自动对齐目标，再用 Debug Padding / Radius 微调。")]
+        [SerializeField] private RectTransform debugTarget;
+        [SerializeField] private Vector2 debugPadding = new Vector2(20f, 20f);
+        [SerializeField] private float debugCornerRadiusPixels = 20f;
         [SerializeField] private Vector2 debugHoleCenter = new Vector2(0.5f, 0.5f); // 归一化 0-1
         [SerializeField] private Vector2 debugHoleSize   = new Vector2(0.3f, 0.2f); // 归一化 0-1
         [SerializeField] private float   debugCornerRadius = 0.02f;                 // 归一化 0-1
+        [SerializeField] private HoleShape debugHoleShape = HoleShape.RoundedRect;
         [SerializeField] private Color   debugMaskColor = new Color(0f, 0f, 0f, 0.8f);
 
         private Image    _maskImage;
@@ -42,6 +55,12 @@ namespace Template.UI
         private Vector2 _currentHoleCenter;
         private Vector2 _currentHoleSize;
         private float   _currentCornerRadius;
+
+        // 点击穿透使用物理像素坐标，避免 Canvas Scaler / 归一化误差导致视觉孔洞和点击孔洞不一致。
+        private Vector2 _holeScreenCenter;
+        private Vector2 _holeScreenHalfSize;
+        private float   _cornerRadiusPixels;
+        private HoleShape _currentHoleShape;
 
         private RectTransform _currentTarget;
 
@@ -72,18 +91,47 @@ namespace Template.UI
 
         private void Update()
         {
-            if (!enableRuntimeDebug || _maskMaterial == null)
+            if (!enableRuntimeDebug)
                 return;
 
+            if (debugTarget != null)
+            {
+                Vector2 oldPadding = holePadding;
+                float oldRadius = cornerRadius;
+                HoleShape oldShape = holeShape;
+                Color oldColor = maskColor;
+
+                holePadding = debugPadding;
+                cornerRadius = debugCornerRadiusPixels;
+                holeShape = debugHoleShape;
+                maskColor = debugMaskColor;
+                UpdateHoleFromTarget(debugTarget);
+
+                holePadding = oldPadding;
+                cornerRadius = oldRadius;
+                holeShape = oldShape;
+                maskColor = oldColor;
+                return;
+            }
+
             // 调试模式：实时更新 Shader 参数
-            _maskMaterial.SetVector("_HoleCenter", debugHoleCenter);
-            _maskMaterial.SetVector("_HoleSize",   debugHoleSize);
-            _maskMaterial.SetFloat ("_CornerRadius", debugCornerRadius);
-            _maskMaterial.SetColor ("_Color", debugMaskColor);
+            if (_maskMaterial != null)
+            {
+                _maskMaterial.SetVector("_HoleCenter", debugHoleCenter);
+                _maskMaterial.SetVector("_HoleSize",   debugHoleSize);
+                _maskMaterial.SetFloat ("_CornerRadius", debugCornerRadius);
+                _maskMaterial.SetFloat ("_HoleShape", (float)debugHoleShape);
+                _maskMaterial.SetColor ("_Color", debugMaskColor);
+            }
 
             _currentHoleCenter    = debugHoleCenter;
             _currentHoleSize      = debugHoleSize;
             _currentCornerRadius  = debugCornerRadius;
+            _currentHoleShape     = debugHoleShape;
+
+            _holeScreenCenter = new Vector2(debugHoleCenter.x * Screen.width, debugHoleCenter.y * Screen.height);
+            _holeScreenHalfSize = new Vector2(debugHoleSize.x * Screen.width * 0.5f, debugHoleSize.y * Screen.height * 0.5f);
+            _cornerRadiusPixels = debugCornerRadius * Mathf.Min(Screen.width, Screen.height);
         }
 
         /// <summary>
@@ -91,24 +139,42 @@ namespace Template.UI
         /// </summary>
         public void SetHoleTarget(RectTransform target)
         {
+            SetHoleTarget(target, null, null, null);
+        }
+
+        /// <summary>
+        /// 根据目标 RectTransform 自动计算并设置挖孔位置和大小，可临时覆盖 padding / radius / shape。
+        /// </summary>
+        public void SetHoleTarget(RectTransform target, Vector2? padding, float? radius, HoleShape? shape)
+        {
             if (target == null)
             {
                 Debug.LogWarning("[HoleMaskController] SetHoleTarget: 目标为空");
                 return;
             }
 
-            if (_maskMaterial == null)
+            _currentTarget = target;
+            Vector2 oldPadding = holePadding;
+            float oldRadius = cornerRadius;
+            HoleShape oldShape = holeShape;
+
+            if (padding.HasValue) holePadding = padding.Value;
+            if (radius.HasValue) cornerRadius = radius.Value;
+            if (shape.HasValue) holeShape = shape.Value;
+
+            if (enableRuntimeDebug)
             {
-                Debug.LogError("[HoleMaskController] Material 未初始化");
+                holePadding = oldPadding;
+                cornerRadius = oldRadius;
+                holeShape = oldShape;
                 return;
             }
 
-            _currentTarget = target;
-
-            if (enableRuntimeDebug)
-                return;
-
             UpdateHoleFromTarget(target);
+
+            holePadding = oldPadding;
+            cornerRadius = oldRadius;
+            holeShape = oldShape;
         }
 
         private void UpdateHoleFromTarget(RectTransform target)
@@ -145,10 +211,21 @@ namespace Template.UI
             _currentHoleCenter   = normalizedCenter;
             _currentHoleSize     = normalizedSize;
             _currentCornerRadius = normalizedRadius;
+            _currentHoleShape    = holeShape;
 
-            _maskMaterial.SetVector("_HoleCenter",   new Vector4(normalizedCenter.x, normalizedCenter.y, 0, 0));
-            _maskMaterial.SetVector("_HoleSize",     new Vector4(normalizedSize.x,   normalizedSize.y,   0, 0));
-            _maskMaterial.SetFloat ("_CornerRadius", normalizedRadius);
+            _holeScreenCenter = screenCenter;
+            _holeScreenHalfSize = screenSize * 0.5f;
+            _cornerRadiusPixels = cornerRadius;
+
+            // Shader 缺失时仍保留 C# 点击几何，避免视觉降级后交互一起失效。
+            if (_maskMaterial != null)
+            {
+                _maskMaterial.SetVector("_HoleCenter",   new Vector4(normalizedCenter.x, normalizedCenter.y, 0, 0));
+                _maskMaterial.SetVector("_HoleSize",     new Vector4(normalizedSize.x,   normalizedSize.y,   0, 0));
+                _maskMaterial.SetFloat ("_CornerRadius", normalizedRadius);
+                _maskMaterial.SetFloat ("_HoleShape", (float)holeShape);
+                _maskMaterial.SetColor ("_Color", maskColor);
+            }
         }
 
         /// <summary>
@@ -156,25 +233,43 @@ namespace Template.UI
         /// </summary>
         public bool IsPointInHole(Vector2 screenPoint)
         {
-            float sw = Screen.width;
-            float sh = Screen.height;
+            if (_holeScreenHalfSize.sqrMagnitude <= 0.001f)
+                return false;
 
-            Vector2 normalizedPoint = new Vector2(screenPoint.x / sw, screenPoint.y / sh);
-            Vector2 diff = normalizedPoint - _currentHoleCenter;
-            float dist = RoundedBoxSDF(diff, _currentHoleSize * 0.5f, _currentCornerRadius);
+            Vector2 diff = screenPoint - _holeScreenCenter;
+            float dist;
+            switch (_currentHoleShape)
+            {
+                case HoleShape.Rect:
+                    dist = RectSDF(diff, _holeScreenHalfSize);
+                    break;
+                case HoleShape.Circle:
+                    dist = diff.magnitude - Mathf.Min(_holeScreenHalfSize.x, _holeScreenHalfSize.y);
+                    break;
+                default:
+                    dist = RoundedBoxSDF(diff, _holeScreenHalfSize, _cornerRadiusPixels);
+                    break;
+            }
+
             return dist < 0f;
+        }
+
+        private static float RectSDF(Vector2 centerPos, Vector2 halfSize)
+        {
+            Vector2 q = new Vector2(Mathf.Abs(centerPos.x), Mathf.Abs(centerPos.y)) - halfSize;
+            return Mathf.Max(q.x, q.y);
         }
 
         /// <summary>
         /// 圆角矩形 SDF（与 Shader 中算法完全一致）
         /// </summary>
-        private static float RoundedBoxSDF(Vector2 centerPos, Vector2 size, float radius)
+        private static float RoundedBoxSDF(Vector2 centerPos, Vector2 halfSize, float radius)
         {
-            Vector2 d = new Vector2(
-                Mathf.Max(Mathf.Abs(centerPos.x) - size.x + radius, 0f),
-                Mathf.Max(Mathf.Abs(centerPos.y) - size.y + radius, 0f)
-            );
-            return d.magnitude - radius;
+            radius = Mathf.Max(0f, radius);
+            Vector2 q = new Vector2(Mathf.Abs(centerPos.x), Mathf.Abs(centerPos.y)) - halfSize + new Vector2(radius, radius);
+            float outside = new Vector2(Mathf.Max(q.x, 0f), Mathf.Max(q.y, 0f)).magnitude;
+            float inside = Mathf.Min(Mathf.Max(q.x, q.y), 0f);
+            return outside + inside - radius;
         }
 
         // ContextMenu 调试工具
@@ -199,6 +294,7 @@ namespace Template.UI
         public void HideHole()
         {
             _maskMaterial?.SetVector("_HoleSize", Vector4.zero);
+            _holeScreenHalfSize = Vector2.zero;
         }
 
         /// <summary>设置遮罩颜色</summary>

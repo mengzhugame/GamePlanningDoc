@@ -8,6 +8,9 @@
 
 - [[Unity通用技术栈复用指南]] — 8 个代码模板的"何时抄/为什么/踩坑"决策表 + 微信小游戏专属补丁 + 单例选型
 - [[数据埋点与BattleLog工程落地]] — 两层架构（场景分析 + 第三方 SDK）+ AnalyticsManager 4 条工程纪律 + 22 个最少必要场景 + IAA 意愿/完播拆分
+- [[AI代码Agent协作工作流]] — Spec → Plan → Code → Test 的 AI 编程协作流程、Agent 模式和 Unity 项目验收纪律
+- [[AI工具成本与模型路由策略]] — 多 Provider、模型分层、API 成本监控和低价/高能力模型路由原则
+- [[Unity代码规范与审查清单]] — Unity C# 命名、Inspector、事件订阅、调试代码、性能红线和 ScriptableObject 自检清单
 
 ## 与 `40_知识/02_引擎与技术/代码模板库/` 的关系
 

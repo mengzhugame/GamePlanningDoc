@@ -49,6 +49,7 @@
 | `/distill` | `90_系统/skills/skill-distill.md` |
 | `/iron-rule-check <方向名>` | `90_系统/skills/skill-iron-rule-check.md` |
 | `/category-dive <品类名>` | `90_系统/skills/skill-category-dive.md` |
+| `/idea-review-agent daily/weekly` | `90_系统/skills/skill-idea-review-agent.md` |
 | `/idea-score <创意名>` | `90_系统/skills/skill-idea-score.md` |
 | `/knowledge` `/research` `/review` `/archive` | 对应同名 `skill-xxx.md` |
 

@@ -8,6 +8,15 @@
 | 拆解日期 | 游戏 | 品类 | 子分支 | 拆解人 | 状态 | 文件 |
 |---------|------|------|-------|-------|------|------|
 | 2026-02-08 | 羊了个羊 | 三消 | 堆叠消除 | user | draft | [[2026-02_羊了个羊]] |
+| 2026-02-17 | QQ经典农场 | 模拟经营 | 社交农场+情怀IP+等待回访 | codex | draft | [[2026-02_QQ经典农场]] |
+| 2026-02-17 | 无尽冬日 | SLG | 末日生存+基地建设+联盟战争 | codex | draft | [[2026-02_无尽冬日]] |
+| 2026-02-17 | 保卫萝卜 | 塔防 | 固定路径塔防+星级重玩+每日关卡 | codex | draft | [[2026-02_保卫萝卜]] |
+| 2026-02-17 | 箭了又箭 | 解谜/益智 | 拔箭头路径规划+低惩罚失败+克制广告 | codex | distilled | [[2026-02_箭了又箭]] |
+| 2026-02-18 | 生存33天 | 轰隆隆like | 自动战斗采集+搜打撤副本+箱庭探索 | codex | distilled | [[2026-02_生存33天]] |
+| 2026-02-18 | 疯狂水世界 | 模拟经营+SLG | 经营前菜+联盟城战+双系统闭环 | codex | distilled | [[2026-02_疯狂水世界]] |
+| 2026-02-13 | 晴空双子 | 卡牌塔防 | 弹射+二次元角色收集+放置养成 | codex | distilled | [[2026-02_晴空双子]] |
+| 2026-02-13 | 英雄没有闪 | 放置ARPG | 暗黑Like刷宝+自动战斗+流派构筑 | codex | distilled | [[2026-04_英雄没有闪]] |
+| 2026-05-01 | All in Hole | 混合休闲 | 吞噬成长+体积断点+轻Meta | codex | distilled | [[2026-05_All_in_Hole]] |
 | 2026-05-04 | 噩梦守护战 | 弹球塔防 | 物理弹球+卡牌摆放+灵魂经济 | claude-code | draft | [[2026-05_噩梦守护战]] |
 | 2026-05-04 | 装备全靠转 | Roguelike+Board | 大富翁+自走棋+高波动随机 | claude-code | draft | [[2026-05_装备全靠转]] |
 | 2026-05-04 | 向僵尸开炮 | 射击 Roguelike+塔防 | 肉鸽塔防+内容型长线+构筑养成 | claude-code | draft | [[2026-05_向僵尸开炮]] |
@@ -16,6 +25,33 @@
 | 2026-05-04 | Merge Gardens | Merge+三消混合 | 合成主板+关卡+治愈装修(海外) | claude-code | draft | [[2026-05_Merge_Gardens]] |
 | 2026-05-04 | Lily's Garden | Blast 三消+装修叙事 | 浪漫剧情+星星经济+5亿美元IP | claude-code | draft | [[2026-05_Lilys_Garden]] |
 | 2026-05-04 | 我的小家 | 三消+装修模拟 | 中式女性向+自由搭配+经典 Match-3 | claude-code | draft | [[2026-05_我的小家]] |
+| 2026-05-24 | Balatro | Roguelike Deckbuilder | 扑克牌型+小丑牌构筑+乘区爆发 | codex | distilled | [[2026-05_Balatro]] |
+| 2026-03-05 | Tower Dominion | Roguelike 塔防 | 英雄池驱动+羁绊词条+伪随机发牌 | codex | distilled | [[2026-03_Tower_Dominion]] |
+| 2026-04-10 | Blue Prince | 解谜 Roguelite | 房间起草+每日重置+知识型成长 | codex | distilled | [[2026-04_Blue_Prince]] |
+| 2026-05-25 | Brotato | 生存 Roguelite | 自动攻击+多武器挂载+极端角色构筑 | codex | distilled | [[2026-05_Brotato]] |
+| 2026-05-25 | Dave the Diver | 经营探索 | 白天潜水探索+夜晚寿司店经营+渐进式系统堆叠 | codex | distilled | [[2026-05_Dave_the_Diver]] |
+| 2026-05-25 | Dead Cells | RogueVania | 高速动作+局外解锁+颜色流派词条协同 | codex | distilled | [[2026-05_Dead_Cells]] |
+| 2026-03-15 | Enter the Gungeon | 弹幕射击 Roguelike | 翻滚无敌帧+武器喜剧库+隐藏协同 | codex | distilled | [[2026-03_Enter_the_Gungeon]] |
+| 2026-05-25 | Slay the Spire | Roguelike Deckbuilder | 明牌意图+删牌构筑+遗物规则改写 | codex | distilled | [[2026-05_Slay_the_Spire]] |
+| 2026-05-25 | Terraria | 2D 沙盒冒险 | Boss门槛+阶段质变+战前场地搭建 | codex | distilled | [[2026-05_Terraria]] |
+| 2026-05-25 | The Binding of Isaac | 动作 Roguelike | 道具化学反应+反协同+高风险资源交换 | codex | distilled | [[2026-05_The_Binding_of_Isaac]] |
+| 2026-05-25 | Darkest Dungeon | 回合制策略 Roguelike | 压力系统+负反馈滚雪球+位置战斗 | codex | distilled | [[2026-05_Darkest_Dungeon]] |
+| 2026-05-25 | FTL | 太空策略 Roguelike | 实时暂停+舰船系统联动+资源饥饿 | codex | distilled | [[2026-05_FTL]] |
+| 2026-05-25 | Monster Train | Roguelike Deckbuilder | 三层车厢防守+双阵营构筑+容量策略 | codex | distilled | [[2026-05_Monster_Train]] |
+| 2026-05-25 | Noita | 动作 Roguelite | 像素级物理+法术编程+涌现连锁 | codex | distilled | [[2026-05_Noita]] |
+| 2026-05-25 | Hades | 动作 Roguelite | 高速战斗+神明祝福+死亡叙事循环 | codex | distilled | [[2026-05_Hades]] |
+| 2026-05-25 | Hollow Knight | 银河恶魔城 | 能力锁+灵魂资源+环境叙事 | codex | distilled | [[2026-05_Hollow_Knight]] |
+| 2026-05-25 | Inscryption | 卡牌 Roguelike | 献祭费用+密室解谜+Meta叙事 | codex | distilled | [[2026-05_Inscryption]] |
+| 2026-04-18 | Isle of Arrows | 塔防 Roguelite | 图块放置+路径塑形+空间资源 | codex | distilled | [[2026-04_Isle_of_Arrows]] |
+| 2026-05-26 | Loop Hero | Roguelike | 自动战斗+地形卡牌+逆向塔防 | codex | distilled | [[2026-05_Loop_Hero]] |
+| 2026-04-19 | Lucky Defense | 合作塔防 | 随机召唤+三合一升阶+双人协防 | codex | distilled | [[2026-04_Lucky_Defense]] |
+| 2026-04-30 | Mob Control | 混合休闲 | 倍增门+人海推进+卡牌/基地Meta | codex | distilled | [[2026-04_Mob_Control]] |
+| 2026-05-26 | Risk of Rain 2 | 动作 Roguelite | 时间难度+道具触发链+无限膨胀 | codex | distilled | [[2026-05_Risk_of_Rain_2]] |
+| 2026-04-10 | Rogue Tower | 塔防 Roguelite | 动态扩路+卡牌构筑+三段防御克制 | codex | distilled | [[2026-04_Rogue_Tower]] |
+| 2026-05-26 | Spelunky | 平台动作 Roguelike | 统一规则集+公平死亡+幽灵时间压力 | codex | distilled | [[2026-05_Spelunky]] |
+| 2026-04-27 | Thronefall | 极简塔防/轻RTS | 昼夜守城+英雄参战+固定点位取舍 | codex | distilled | [[2026-04_Thronefall]] |
+| 2026-05-26 | Vampire Survivors | 生存 Roguelite | 极简操作+时间轴刷怪+武器进化 | codex | distilled | [[2026-05_Vampire_Survivors]] |
+| 2026-05-27 | 妖之乡 | 生物收集RPG | 半开放世界探索+自走棋战斗+家园经营 | codex | draft | [[2026-05_妖之乡]] |
 
 ---
 

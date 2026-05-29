@@ -7,6 +7,7 @@
 //   _HoleCenter  : 孔洞中心（屏幕归一化坐标，Screen.width/height 归一化后的值）
 //   _HoleSize    : 孔洞宽高（归一化尺寸）
 //   _CornerRadius: 圆角半径（归一化，建议 = pixelRadius / min(Screen.width, Screen.height)）
+//   _HoleShape   : 0=直角矩形，1=圆角矩形，2=正圆（按像素计算，避免椭圆）
 //   _Color       : 遮罩颜色（RGBA，A 控制不透明度）
 
 Shader "UI/HoleMask"
@@ -18,6 +19,7 @@ Shader "UI/HoleMask"
         _HoleCenter ("Hole Center (Normalized)", Vector) = (0.5, 0.5, 0, 0)
         _HoleSize   ("Hole Size (Normalized)",   Vector) = (0.2, 0.1, 0, 0)
         _CornerRadius ("Corner Radius (Normalized)", Float) = 0.02
+        _HoleShape ("Hole Shape (0 Rect, 1 Rounded, 2 Circle)", Float) = 1
 
         // UGUI Stencil 标准属性（必须保留，供 Mask 组件使用）
         _StencilComp ("Stencil Comparison", Float) = 8
@@ -82,6 +84,7 @@ Shader "UI/HoleMask"
             float4    _HoleCenter;
             float4    _HoleSize;
             float     _CornerRadius;
+            float     _HoleShape;
 
             v2f vert(appdata_t v)
             {
@@ -93,15 +96,22 @@ Shader "UI/HoleMask"
                 return o;
             }
 
-            // 圆角矩形 SDF：返回点到圆角矩形边界的有符号距离
-            // centerPos : 点相对于矩形中心的偏移（归一化）
-            // size      : 矩形半尺寸（归一化）
-            // radius    : 圆角半径（归一化）
-            // 返回值 < 0 表示在矩形内部
-            float roundedBoxSDF(float2 centerPos, float2 size, float radius)
+            float rectSDF(float2 centerPos, float2 halfSize)
             {
-                float2 d = max(abs(centerPos) - size + radius, 0.0);
-                return length(d) - radius;
+                float2 q = abs(centerPos) - halfSize;
+                return max(q.x, q.y);
+            }
+
+            // 圆角矩形 SDF：返回点到圆角矩形边界的有符号距离
+            // centerPos : 点相对于矩形中心的偏移（像素）
+            // halfSize  : 矩形半尺寸（像素）
+            // radius    : 圆角半径（像素）
+            // 返回值 < 0 表示在矩形内部
+            float roundedBoxSDF(float2 centerPos, float2 halfSize, float radius)
+            {
+                radius = max(radius, 0.0);
+                float2 q = abs(centerPos) - halfSize + radius;
+                return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
             }
 
             fixed4 frag(v2f i) : SV_Target
@@ -109,14 +119,28 @@ Shader "UI/HoleMask"
                 // 计算当前像素的屏幕归一化坐标
                 float2 screenUV = i.screenPos.xy / i.screenPos.w;
 
-                // 计算到孔洞中心的偏移
-                float2 diff = screenUV - _HoleCenter.xy;
+                // 像素坐标下计算 SDF，保证视觉孔洞和 C# 点击孔洞使用同一坐标系。
+                float2 diffPx = (screenUV - _HoleCenter.xy) * _ScreenParams.xy;
+                float2 halfSizePx = _HoleSize.xy * 0.5 * _ScreenParams.xy;
+                float radiusPx = _CornerRadius * min(_ScreenParams.x, _ScreenParams.y);
 
                 // SDF 距离：> 0 在遮罩区，< 0 在孔洞内
-                float dist = roundedBoxSDF(diff, _HoleSize.xy * 0.5, _CornerRadius);
+                float dist;
+                if (_HoleShape < 0.5)
+                {
+                    dist = rectSDF(diffPx, halfSizePx);
+                }
+                else if (_HoleShape < 1.5)
+                {
+                    dist = roundedBoxSDF(diffPx, halfSizePx, radiusPx);
+                }
+                else
+                {
+                    dist = length(diffPx) - min(halfSizePx.x, halfSizePx.y);
+                }
 
                 // smoothstep 实现软边抗锯齿（约 ±1px 过渡带）
-                float alpha = smoothstep(-0.001, 0.001, dist);
+                float alpha = smoothstep(-1.0, 1.0, dist);
 
                 fixed4 col = _Color;
                 col.a *= alpha;
