@@ -6,9 +6,9 @@ source_book: 代码模板库 14 个模板（MZ02 + LightVSDecay 双项目提取�
 source_page: 40_知识/02_引擎与技术/代码模板库/00_INDEX.md; 01_GameLogger.md; 02_SingletonPattern.md; 03_SafeSceneLoader.md; 04_AudioManager.md; 05_SaveManager.md; 06_WXAdsManager.md; 07_UIAnimationHelper.md; UGUI挖孔遮罩/README.md; 09_CoinFlyAnimation.md; 10_FloatingTextSystem.md; 11_GameEvents.md; 12_AnalyticsManager.md; 13_AudioManagerPro.md; 14_ProgressManager_CurrencyTopBar.md; 10_流水/光与朽项目/Claude-2026-04-16.md; 10_流水/光与朽项目/Claude-2026-04-17.md; 10_流水/光与朽项目/Claude-2026-04-18.md
 domain: 02_引擎与技术
 tags: [Unity, 微信小游戏, 单例, 场景加载, 音频, 存档, 广告, UI动效, 飘字, 事件总线, 埋点, 资源管理, 工程化, 决策指南]
-updated: 2026-05-23
-last_reviewed: 2026-05-23
-review_count: 20
+updated: 2026-05-30
+last_reviewed: 2026-05-30
+review_count: 22
 ---
 
 # Unity 通用技术栈复用指南
@@ -1564,3 +1564,76 @@ UI 对象池调试要先证明“容器存在、实例真的生成、坐标真�
 | 编辑器层级修改 / 加载关卡 | 立即重算，保证可视结果和保存数据一致 |
 
 编辑器为了操作方便，可以允许拖动被遮挡物；运行时则必须禁止点击被遮挡物。这两套规则要共享检测逻辑，但不要共享交互限制。
+
+## 来源: `10_流水/2026-05/2026-05-27.md` · 提取日期 2026-05-29
+
+## URP 屏幕空间描边要先把深度、法线、Mask 和移动端降级讲清楚
+
+URP 里做角色描边，较稳的结构是自定义 `ScriptableRendererFeature` + `ScriptableRenderPass`，不要只说“后处理描边”。实现前先拆五件事：
+
+| 模块 | 推荐做法 | 易错点 |
+| --- | --- | --- |
+| 深度 | 开启 URP Depth Texture，Shader 中采 `_CameraDepthTexture` 并转 linear depth | 直接把深度塞普通 `ARGB32` 的 A 通道，远处精度容易丢 |
+| 法线 | 使用 DepthNormals Pass，或额外渲一张 view space normals RT | 法线/深度合并时必须说明 RT 格式和精度 |
+| 边缘检测 | 对深度和法线做 3x3 Sobel / 梯度检测，再合成 edge | Sobel 不是“周围 8 点平均”，而是卷积核算梯度 |
+| 只描角色 | LayerMask、Rendering Layer、Stencil 或 Mask RT | 不建议靠 Tag / ShaderName 做长期维护 |
+| 插入时机 | `AfterRenderingOpaques` 或 `BeforeRenderingPostProcessing`，最后叠加到 color target，UI 前 | 透明物体是否参与描边要单独定义 |
+
+远近描边稳定性不能只靠固定采样半径。深度是非线性的，应先 linearize depth，再根据 linear depth 调整深度阈值，必要时调整采样半径或边缘阈值，避免近处细、远处粗或闪烁。
+
+移动端优化优先级：
+
+1. 低端机只开深度描边，关闭法线描边。
+2. 3x3 采样降为 4-tap 或 cross pattern。
+3. 法线 / Mask RT 使用半分辨率。
+4. 只为角色层渲染 normals / mask，减少额外绘制。
+5. 明确质量开关，不让 Bloom、Outline、透明特效和角色 Shader 同时抢满 GPU。
+
+面试或技术方案里最该表达的是：描边不只是一个 Shader，而是一套 Render Pass、RT 精度、对象筛选、插入时机和移动端质量分级的系统。
+
+## 来源: `10_流水/Openclaw知识库文件/technical_design_guide.md` · 提取日期 2026-05-30
+
+## 技术策划交付物要让设计变成可验证工程资产
+
+技术策划的价值不是多写一份需求，而是把抽象设计翻译成配置、原型、工具和边界条件，让程序和策划都少猜。
+
+可复用交付物：
+
+| 交付物 | 作用 |
+| --- | --- |
+| 配置表 + 校验脚本 | 自动检查字段、范围、引用、重复 ID 和导出格式 |
+| Unity Editor 面板 | 让关卡、技能、敌人或奖励配置可视化 |
+| 白盒原型 | 在进正式开发前验证输入、反馈、边缘情况 |
+| 状态机 / 流程图 | 把动画、技能、UI 和战斗状态拆成清晰入口 |
+| 表现挂点表 | 明确 VFX/SFX/震屏/卡肉出现的帧和触发条件 |
+
+写需求时要多写“不可接受状态”：例如配置缺字段时是否报错、找不到 Prefab 是否降级、对象池满了是否丢弃、广告失败是否走等待恢复。边界比理想流程更能减少返工。
+
+## 来源: `10_流水/Openclaw知识库文件/unity_core_modules.md` · 提取日期 2026-05-30
+
+## 激光视觉、碰撞和物理反馈要共用同一套事实
+
+LineRenderer 只负责视觉，BoxCollider2D / Raycast / OverlapBox 才负责命中。激光、射线或长条攻击最常见的问题，是视觉长度、碰撞长度和旋转角度各算各的。
+
+同步规则：
+
+| 项 | 做法 |
+| --- | --- |
+| 长度 | 用首尾点距离计算碰撞盒长度 |
+| 中心 | 碰撞盒放在首尾点中点 |
+| 旋转 | 用 `Atan2` 计算方向角 |
+| 层级 | Collider 可作为子物体，避免影响 LineRenderer 世界坐标 |
+| 测试 | Debug 同时画视觉线和命中盒，不只看 Inspector 数字 |
+
+Rigidbody2D 击退也要看质量、ForceMode、Drag 和摩擦。普通击退适合 `Impulse`，持续场力适合 `Force`；如果不同敌人的质量差异很大，应明确击退是否要除以质量，避免坦克怪完全不动或小怪飞出屏幕。
+
+对象池部分要守住生命周期：
+
+| 风险 | 规则 |
+| --- | --- |
+| VFX 播完没回池 | 监听 `ParticleSystem.IsAlive()` 或按 duration 回收 |
+| 父物体回池隐藏子特效 | 回池前解绑或归还子特效 |
+| 旧状态残留 | 每次取出必须走 `Init()`，回收前走 `Reset()` |
+| 粒子 / Trail / LineRenderer 残留 | 回池时显式 Stop、Clear、重置可见状态 |
+
+对象池不是只管 active。它管理的是“这次使用结束后，下次拿出来像全新对象一样干净”。

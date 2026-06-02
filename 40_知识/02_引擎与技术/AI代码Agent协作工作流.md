@@ -2,12 +2,12 @@
 type: knowledge
 status: review
 created: 2026-05-26
-updated: 2026-05-26
+updated: 2026-05-29
 domain: 02_引擎与技术
 tags: [AI代码, CodingAgent, ClaudeCode, Codex, 工作流, 工程协作]
 source: Openclaw ai_coding_agent_workflow + claude_code_best_practices + claude_code_roadmap
-last_reviewed: 2026-05-26
-review_count: 1
+last_reviewed: 2026-05-29
+review_count: 2
 ---
 
 # AI 代码 Agent 协作工作流
@@ -174,3 +174,36 @@ Claude Code / Codex 的学习路线可以按四层推进：
 | 资深/专家 | 能设计半自动工程流水线 | TDD Agent、性能安全审查、迁移流水线、Zero-Shot 垂直切片、上下文工程 |
 
 对个人游戏开发者，最优先补的不是花哨自动化，而是三件事：项目入口上下文、验证闭环、分批回滚。没有这三件，越高级的 Agent 流越容易把工程改乱。
+
+## 来源: `10_流水/Openclaw知识库文件/multi_agent_framework.md` · 提取日期 2026-05-29
+
+## 多 Agent 框架选择先看协作形态
+
+多 Agent 工具不要按热度选，而要按当前任务的协作形态选。
+
+| 框架倾向 | 更适合 | 不适合 |
+| --- | --- | --- |
+| CrewAI | 角色边界清楚的流水线，例如策划产表、程序实现、测试验收 | 需要复杂状态回滚和精细分支控制的工程 |
+| AutoGen | 大量对话、头脑风暴、设计讨论和快速原型 | 需要强确定性的生产流水线 |
+| LangGraph | 明确状态机、多分支、可追踪工作流，例如生成配置、跑验证、按结果分支 | 早期需求还没稳定的探索阶段 |
+
+游戏开发里的多 Agent 最小可行形态不是“很多智能体一起聊天”，而是：
+
+```text
+主控 Agent 定义目标和验收
+-> 策划 Agent 只输出结构化设计/JSON/表格
+-> 程序 Agent 只按结构化输入实现
+-> 测试 Agent 或真实环境跑日志
+-> 主控 Agent 根据日志决定修正或合并
+```
+
+这里最关键的是边界，而不是框架名。每个 Agent 都要有明确输入、输出格式、禁止事项和验收标准。例如策划 Agent 只产数值表，不碰 C#；程序 Agent 只解析表和改代码，不重写设计目标；测试 Agent 只返回日志、复现和失败条件。
+
+对 Unity 项目尤其要把自动化闭环落到真实环境：
+
+1. 生成或修改代码。
+2. 编译 / PlayMode / EditMode / 自定义日志验证。
+3. 把 Unity 报错、BattleLog 或截图结果传回。
+4. 只针对失败点修正，不扩大任务范围。
+
+多 Agent 的价值是把上下文和职责隔离，让主线程保持判断力。若没有测试环境、输入输出格式和合并规则，开更多 Agent 只会制造更多不一致。

@@ -135,10 +135,10 @@ public class BuildTool : MonoBehaviour
         options.target = BuildTarget.Android;
         options.locationPathName = "Builds/Android/LightVSDecay.apk";
         options.options = BuildOptions.None;
-        
+
         BuildPipeline.BuildPlayer(options);
     }
-    
+
     [MenuItem("Build/iOS")]
     public static void BuildiOS()
     {
@@ -2640,7 +2640,7 @@ monday 2026 的项目组合管理材料提到：
 # Experiment Gate Card
 
 ## 1. 方向名称
-- 
+-
 
 ## 2. 一句话承诺
 - 玩家为什么会点进来？
@@ -2667,10 +2667,10 @@ monday 2026 的项目组合管理材料提到：
 - 说明：
 
 ## 7. 本阶段通过标准
-- 
+-
 
 ## 8. 本阶段失败标准
-- 
+-
 
 ## 9. 结论
 - Go / Hold / Pivot / Kill
