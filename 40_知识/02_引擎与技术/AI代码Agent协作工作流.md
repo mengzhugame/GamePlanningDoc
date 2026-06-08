@@ -2,12 +2,12 @@
 type: knowledge
 status: review
 created: 2026-05-26
-updated: 2026-05-29
+updated: 2026-06-04
 domain: 02_引擎与技术
 tags: [AI代码, CodingAgent, ClaudeCode, Codex, 工作流, 工程协作]
 source: Openclaw ai_coding_agent_workflow + claude_code_best_practices + claude_code_roadmap
-last_reviewed: 2026-05-29
-review_count: 2
+last_reviewed: 2026-06-04
+review_count: 3
 ---
 
 # AI 代码 Agent 协作工作流
@@ -207,3 +207,29 @@ Claude Code / Codex 的学习路线可以按四层推进：
 4. 只针对失败点修正，不扩大任务范围。
 
 多 Agent 的价值是把上下文和职责隔离，让主线程保持判断力。若没有测试环境、输入输出格式和合并规则，开更多 Agent 只会制造更多不一致。
+
+## 来源: `10_流水/2026-06/2026-06-03.md` · 提取日期 2026-06-04
+
+## 本地自用 Agent 工作流优先于 SaaS 外壳
+
+对当前阶段，运营 Agent 不必先做成网站、SaaS 或 API 产品。更稳的 v0 是一个本地工程：用 `AGENTS.md`、`skills/`、`profiles/`、`content/`、`data/` 和 `templates/` 组织工作流，由 Codex / Claude Code 等高能力模型按月包方式执行。
+
+自用版结构原则：
+
+| 模块 | 作用 |
+| --- | --- |
+| `AGENTS.md` | 写清项目目标、目录、硬约束和输出格式 |
+| `skills/` | 拆成选题、竞品洞察、内容包、发布前审核、数据复盘、资料同步等 SOP |
+| `profiles/` | 保存账号线：独立开发者获客、技术美术接单、旅行 IP |
+| `content/` | 存选题、草稿、待发布、已发布、复盘内容 |
+| `data/` | 存发布数据、线索、周复盘 |
+| `templates/` | 存小红书内容包、选题卡、数据记录模板 |
+
+目录放在知识库内的好处是可以读取用户画像、项目复盘和商业路线；风险是污染正式知识结构。折中做法是：把它作为 `20_项目/03_AI自动化运营助手项目/09_本地Agent工作流/` 这样的项目内工具区，并通过 `skill-sync-profile` 从 `70_用户信息/`、`50_商业/`、`20_项目/` 同步摘要，而不是复制一份永不更新的个人档案。
+
+当前判断：
+
+- v0 先跑内容生成和复盘闭环，不做外部用户。
+- 人工审核和手动发布保留。
+- 当本地工作流真的带来内容、私信、线索或收入，再考虑网页 UI、数据库、API 和 SaaS。
+- skill 文件不是智能体本身，而是稳定规则；智能来自模型，稳定来自上下文工程。
